@@ -1,16 +1,20 @@
-# Ecosystem Architecture
+# Ecosystem architecture
 
 Nexora is split by responsibility rather than by deployment convenience.
 
 ```text
-analysis profiles  ->  nexora-api  <-  nexora-web
-                         ^
-                         |
-                    nexora-skill
+independent profiles
+        |
+        v
+nexora-api: engine, snapshots, governance, MCP, platform authority
+        |
+        +--> nexora-web: human interface in English and Spanish
+        |
+        +--> nexora-skill: bounded agent workflows
 
-                    nexora (documentation)
+nexora: conceptual, scientific, and cross-repository documentation
 ```
 
-The API repository owns deterministic analysis, persistence, governance, MCP, and server-side authorization. Profiles describe syntax and projection rules as data. The web application owns presentation and browser interaction. Skills provide agent-facing workflows and do not replace server authorization.
+The API and engine own facts, identity, authorization, publication, and governance. Profiles provide language knowledge as data. The repository is the primary integration boundary: local roots and authorized GitHub/GitLab repositories can feed the same work, snapshot, policy, and delivery model. The web application presents platform state to people. Skills describe safe agent workflows but never replace authorization. The common repository explains the ecosystem but is not a runtime dependency.
 
-The separation allows a profile to be updated without releasing the web client and allows the API to evolve without embedding a particular language implementation into the documentation repository.
+This split lets a profile evolve independently from the web client, keeps source analysis independent from browser presentation, and makes the boundary between local analysis and authenticated platform operations visible.
