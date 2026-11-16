@@ -208,11 +208,27 @@ The public source documentation is written in English so that contributors can w
 
 ## Repository map
 
-The project is intentionally split into independently maintained repositories. See [the repository catalog](docs/repository-catalog.md) for the boundaries and release policy.
+The project is intentionally split into independently maintained public repositories. See [the repository catalog](docs/repository-catalog.md) for the boundaries and release policy.
+
+The executable Rust implementation is available in [`torogoz-tech/nexora-api`](https://github.com/torogoz-tech/nexora-api). The browser application, agent skill, and each language profile are published in their own repositories so they can evolve independently.
+
+## Try the API and analyzer
+
+The public `0.1.0` API repository can be downloaded and tested locally today:
+
+```bash
+git clone https://github.com/torogoz-tech/nexora-api.git
+cd nexora-api
+cargo check --workspace --locked
+cargo run -p nexora-cli -- languages list
+cargo run -p nexora-cli -- analyze tests/fixtures/javascript/declarations.js
+```
+
+The first command validates the workspace. The language listing shows the profiles available to the engine, and the analysis command runs the deterministic analyzer against a fixture without executing the analyzed source code. For persistent services, storage, MCP, and platform setup, continue with the [API documentation](https://github.com/torogoz-tech/nexora-api#read-the-implementation-guide) and the common [installation guide](docs/installation.md).
 
 ## Release status
 
-All public repositories currently target the `0.1.0` initial public release line. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). The first public release is documentation-first: the repositories must be reviewed before code is pushed to their public remotes.
+All public repositories currently target the `0.1.0` initial public release line. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). The source, documentation, and `v0.1.0` tags are published in the public `torogoz-tech` repositories. This release is an early open-source foundation: GitLab live verification, Azure DevOps connectivity, and Kubernetes scale-out remain explicitly documented workstreams.
 
 ## Validated deployment and current infrastructure focus
 
