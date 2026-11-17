@@ -39,3 +39,5 @@ sudo docker compose logs --tail 100 api worker web
 ```
 
 images.env.example documents the variables; do not copy its sample numeric identity over a real installation. update.sh reads the existing runtime account and resolves the requested official tags automatically.
+
+The worker healthcheck verifies its process is alive; it does not assert completion or correctness of queued analysis jobs. The explicit healthcheck supports Compose implementations that reject `up --wait` when a service disables an image-inherited healthcheck.

@@ -43,7 +43,12 @@ services:
     mem_limit: 8g
     cpus: 4
     stop_grace_period: 330s
-    healthcheck: {disable: true}
+    healthcheck:
+      test: [CMD-SHELL, "kill -0 1 && grep -q /usr/local/bin/nexora-api /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     depends_on:
       api: {condition: service_healthy}
   web:
