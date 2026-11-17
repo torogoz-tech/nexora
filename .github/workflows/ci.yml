@@ -23,5 +23,7 @@ jobs:
         run: docker compose -f deployment/compose/compose.yaml --env-file deployment/compose/images.env.example config --quiet
       - name: Validate image update script
         run: |
-          bash -n deployment/compose/update.sh
-          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges -v "$PWD/deployment/compose:/mnt:ro" koalaman/shellcheck:v0.10.0 /mnt/update.sh
+          bash -n deployment/compose/update.sh deployment/compose/tests/update-recovery.sh
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges -v "$PWD/deployment/compose:/mnt:ro" koalaman/shellcheck:v0.10.0 /mnt/update.sh /mnt/tests/update-recovery.sh
+      - name: Test deployment recovery without access to host services
+        run: docker run --rm --network none -e NEXORA_RECOVERY_TEST=1 -v "$PWD/deployment/compose:/src:ro" ubuntu:24.04 bash /src/tests/update-recovery.sh

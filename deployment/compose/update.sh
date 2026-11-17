@@ -27,8 +27,6 @@ backup="/var/backups/nexora/images-$(date -u +%Y%m%dT%H%M%SZ)-$$"
 install -d -m 700 "$backup"
 [[ ! -f .env ]] || cp .env "$backup/previous.env"
 cp /etc/nginx/sites-available/nexora "$backup/nginx.conf"
-cp -a /etc/nexora "$backup/config"
-cp -a /var/lib/nexora/secrets "$backup/secrets"
 printf 'NEXORA_API_IMAGE=%s\nNEXORA_WEB_IMAGE=%s\nNEXORA_UID=%s\nNEXORA_GID=%s\n' \
   "$api_digest" "$web_digest" "$(id -u nexora)" "$(id -g nexora)" > .env.next
 docker compose --env-file .env.next config --quiet
@@ -46,11 +44,16 @@ recover() {
     cp "$backup/nginx.conf" /etc/nginx/sites-available/nexora
     if nginx -t; then systemctl reload nginx || true; fi
     if [[ -n $after_schema && $after_schema == "$before_schema" ]]; then
-      if [[ -f $backup/previous.env ]]; then
+      if [[ $native_active == true ]]; then
+        if [[ -f $backup/previous.env ]]; then
+          cp "$backup/previous.env" .env
+        else
+          rm -f .env
+        fi
+        systemctl start nexora-api.service nexora-worker.service || true
+      elif [[ -f $backup/previous.env ]]; then
         cp "$backup/previous.env" .env
         docker compose up -d --no-build --wait --wait-timeout 180 || true
-      elif [[ $native_active == true ]]; then
-        systemctl start nexora-api.service nexora-worker.service || true
       fi
     else
       echo "Schema changed. Preserve data and recover using $backup; do not blindly downgrade." >&2
@@ -63,6 +66,8 @@ trap recover EXIT
 interrupted=true
 if [[ $native_active == true ]]; then systemctl stop nexora-worker.service nexora-api.service; fi
 if [[ -f .env ]]; then docker compose stop worker api; fi
+cp -a /etc/nexora "$backup/config"
+cp -a /var/lib/nexora/secrets "$backup/secrets"
 "${data[@]}" exec -T postgres pg_dump -U nexora -d nexora -Fc > "$backup/database.dump"
 if [[ ! -s $backup/database.dump ]]; then echo 'Database backup is empty.' >&2; exit 1; fi
 mv .env.next .env
