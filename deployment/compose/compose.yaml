@@ -1,0 +1,63 @@
+name: nexora-app
+x-runtime: &runtime
+  image: ${NEXORA_API_IMAGE:?Set the official API image}
+  user: "${NEXORA_UID:?Set the host runtime UID}:${NEXORA_GID:?Set the host runtime GID}"
+  network_mode: host
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  working_dir: /var/lib/nexora
+  tmpfs: [/tmp:rw,nosuid,nodev,size=256m]
+  stop_signal: SIGINT
+  logging:
+    driver: json-file
+    options: {max-size: 20m, max-file: "3"}
+services:
+  api:
+    <<: *runtime
+    command: [--connections, /etc/nexora/connections.json, --schema, nexora_platform, serve, --bind, "127.0.0.1:18081", --workers, "4", --git-policy, /etc/nexora/git-policy.json, --identity-policy, /etc/nexora/identity-policy.json, --cors-origin, "https://nexora.infinitechsv.org", --cors-origin, "http://localhost:5173", --reasoning-settings, /etc/nexora/reasoning.json]
+    volumes:
+      - /etc/nexora/connections.json:/etc/nexora/connections.json:ro
+      - /etc/nexora/git-policy.json:/etc/nexora/git-policy.json:ro
+      - /etc/nexora/identity-policy.json:/etc/nexora/identity-policy.json:ro
+      - /etc/nexora/reasoning.json:/etc/nexora/reasoning.json:ro
+      - /var/lib/nexora:/var/lib/nexora
+    mem_limit: 4g
+    cpus: 4
+    stop_grace_period: 180s
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, "http://127.0.0.1:18081/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  worker:
+    <<: *runtime
+    command: [--connections, /etc/nexora/connections.json, --schema, nexora_platform, worker, --settings, /etc/nexora/worker.json, --git-policy, /etc/nexora/git-policy.json]
+    volumes:
+      - /etc/nexora/connections.json:/etc/nexora/connections.json:ro
+      - /etc/nexora/git-policy.json:/etc/nexora/git-policy.json:ro
+      - /etc/nexora/worker.json:/etc/nexora/worker.json:ro
+      - /var/lib/nexora:/var/lib/nexora
+    mem_limit: 8g
+    cpus: 4
+    stop_grace_period: 330s
+    healthcheck: {disable: true}
+    depends_on:
+      api: {condition: service_healthy}
+  web:
+    image: ${NEXORA_WEB_IMAGE:?Set the official web image}
+    restart: unless-stopped
+    ports: ["127.0.0.1:18082:8080"]
+    volumes:
+      - ./web-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    read_only: true
+    tmpfs: [/tmp:rw,nosuid,nodev,size=64m]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}

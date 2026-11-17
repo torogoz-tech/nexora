@@ -121,3 +121,7 @@ The team is currently working on the Kubernetes installation so Nexora can scale
 ## Current publication boundary
 
 Version `0.2.0` provides the application container build contracts, CI artifact flow, and reviewed Kubernetes base inputs described here. The platform behavior has already been validated in a real self-hosted deployment. The public source does not yet provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
+
+## Official-image VPS deployment
+
+The existing single-server installation can switch from native executables to official API/worker/web containers without replacing the data services or Cloudflare Tunnel. See [the Compose deployment guide](../deployment/compose/README.md) for the develop → PR → main → GHCR flow, backup and migration gates, and rollback boundaries.
