@@ -9,7 +9,7 @@ The existing PostgreSQL/pgvector, Dragonfly and Neo4j Compose project and persis
 1. Correct and commit on develop, push, and open a PR to main.
 2. CI validates the code and the assembled API image, including startup without linker warnings, non-root execution, writable working directory, Git and its HTTPS transport.
 3. After authorized merge to main, CI publishes the component's SemVer image to GHCR. The web keeps its independently published version when unchanged.
-4. On the server, run the update command only after both requested image versions are published. It pulls official images, validates the API runtime, resolves immutable digests, stops application writers, backs up PostgreSQL/configuration/encryption keys, runs migrations, starts the containers and checks local readiness. It does not rebuild images, transfer executable archives, recreate databases or delete volumes.
+4. On the server, run the update command only after both requested image versions are published. It pulls official images, validates the API runtime, resolves immutable digests, stops application writers, backs up PostgreSQL/configuration/encryption keys after stopping application writers, runs migrations, starts the containers and checks local readiness. It does not rebuild images, transfer executable archives, recreate databases or delete volumes.
 5. Verify public HTTPS, CORS, authenticated browser API, MCP authorization, synchronization, and the browser console before declaring publication complete. The local update checks do not replace these public acceptance checks.
 
 ## Initial installation on the existing host
@@ -28,7 +28,7 @@ The update writes /opt/nexora/deploy/app/.env containing image digests and numer
 
 ## Failure and recovery
 
-A failed activation attempts to restore the previous proxy and application only if the database migration version is unchanged. If a migration changed the schema, it stops and reports the matching backup instead of blindly running older binaries. A database restore also requires its matching private encryption keys/configuration. Do not use compose down -v, delete volumes or regenerate keys during recovery. Backups, old native releases and previous image digests must be retained until recovery has been verified.
+A failed activation attempts to restore the previous proxy and application only if the database migration version is unchanged. A failed first transition restores the native services and removes the candidate image configuration; a container-to-container update restores the previous image configuration. CI exercises both paths in disposable containers with mocked service/database commands and no host or network access. If a migration changed the schema, it stops and reports the matching backup instead of blindly running older binaries. A database restore also requires its matching private encryption keys/configuration. Do not use compose down -v, delete volumes or regenerate keys during recovery. Backups, old native releases and previous image digests must be retained until recovery has been verified.
 
 For logs and status:
 
