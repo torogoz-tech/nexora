@@ -1,0 +1,16 @@
+name: Documentation and Kubernetes
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  kubernetes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Render Kubernetes base
+        run: kubectl kustomize deployment/kubernetes/base > /tmp/nexora-kubernetes.yaml
+      - name: Validate Kubernetes base
+        run: docker run --rm -i ghcr.io/yannh/kubeconform:v0.6.7 -strict -summary < /tmp/nexora-kubernetes.yaml

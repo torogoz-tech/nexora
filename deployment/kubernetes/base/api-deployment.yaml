@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-api
+  labels:
+    app.kubernetes.io/name: nexora-api
+    app.kubernetes.io/part-of: nexora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexora-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexora-api
+        app.kubernetes.io/part-of: nexora
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: nexora-api:0.2.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+          args:
+            - >-
+              /usr/local/bin/nexora-api
+              --connections /var/run/nexora/connections.json
+              --schema "${NEXORA_DB_SCHEMA}"
+              serve
+              --bind 0.0.0.0:18080
+              --cors-origin "${NEXORA_CORS_ORIGIN}"
+          envFrom:
+            - configMapRef:
+                name: nexora-api-config
+          ports:
+            - name: http
+              containerPort: 18080
+              protocol: TCP
+          volumeMounts:
+            - name: api-connections
+              mountPath: /var/run/nexora
+              readOnly: true
+            - name: api-tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1
+              memory: 1Gi
+      volumes:
+        - name: api-connections
+          secret:
+            secretName: nexora-api-connections
+        - name: api-tmp
+          emptyDir: {}

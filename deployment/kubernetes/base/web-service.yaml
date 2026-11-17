@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexora-web
+  labels:
+    app.kubernetes.io/name: nexora-web
+    app.kubernetes.io/part-of: nexora
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: nexora-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP

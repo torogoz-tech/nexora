@@ -41,9 +41,9 @@ The knowledge can also be transversal. A project context can combine several rep
 - [Workflow transitions](docs/workflow-transitions.md) — guards, ordered actions, approvals, agent limits, and reconciliation.
 - [Benchmarks](docs/benchmarks.md) — measured results and what they do not prove.
 - [Implementation status](docs/implementation-status.md) — implemented, measured, partial, and future capabilities.
-- [Vision and horizon](docs/vision-and-horizon.md) — where Nexora is going beyond the `0.1.0` foundation.
+- [Vision and horizon](docs/vision-and-horizon.md) — where Nexora is going beyond the `0.2.0` release.
 - [Reproducibility](docs/reproducibility.md) — how to inspect and reproduce the evidence.
-- [Versioning and release policy](docs/versioning.md) — SemVer, component compatibility, `0.1.0`, and the path to `1.0.0`.
+- [Versioning and release policy](docs/versioning.md) — SemVer, component compatibility, `0.2.0`, and the path to `1.0.0`.
 
 ## A simple mental model
 
@@ -214,7 +214,7 @@ The executable Rust implementation is available in [`torogoz-tech/nexora-api`](h
 
 ## Try the API and analyzer
 
-The public `0.1.0` API repository can be downloaded and tested locally today:
+The public `0.2.0` API repository can be downloaded and tested locally today:
 
 ```bash
 git clone https://github.com/torogoz-tech/nexora-api.git
@@ -228,7 +228,7 @@ The first command validates the workspace. The language listing shows the profil
 
 ## Release status
 
-All public repositories currently target the `0.1.0` initial public release line. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). The source, documentation, and `v0.1.0` tags are published in the public `torogoz-tech` repositories. This release is an early open-source foundation: GitLab live verification, Azure DevOps connectivity, and Kubernetes scale-out remain explicitly documented workstreams.
+The API and web repositories currently target the `0.2.0` release line. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). Container artifacts and images use the same SemVer release version, while CI remains separate from CD. This release is an early open-source foundation: GitLab live verification, Azure DevOps connectivity, and Kubernetes scale-out remain explicitly documented workstreams.
 
 ## Validated deployment and current infrastructure focus
 

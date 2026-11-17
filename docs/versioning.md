@@ -22,6 +22,19 @@ Each repository owns its own version and release history:
 
 The version of a dependency must be recorded in release notes or a compatibility matrix. A profile release is not automatically an API release, and a web release is not automatically proof that a provider integration is operational in every environment.
 
+## Container and artifact versions
+
+Runtime images and CI workflow artifacts use the SemVer version of the component release. For the `0.2.0` API and web release, the names and tags are:
+
+```text
+nexora-api:0.2.0
+nexora-web:0.2.0
+nexora-api-0.2.0
+nexora-web-0.2.0
+```
+
+The image job consumes the artifact produced by the compilation/build job; it does not compile or bundle the application a second time. On pushes to `main`, CI publishes the explicit release tag to GHCR; pull requests do not publish images. Floating and commit-derived tags are not part of the release policy. Kubernetes manifests reference the explicit release tag, and operators change that tag through a reviewed release update or private overlay.
+
 ## Pre-1.0 rules
 
 Until `1.0.0`, Nexora follows these rules:

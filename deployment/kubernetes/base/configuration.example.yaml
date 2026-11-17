@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexora-api-config
+data:
+  NEXORA_CORS_ORIGIN: https://web.example.invalid
+  NEXORA_DB_SCHEMA: nexora_platform
+
+---
+
+# Create the real Secret out of band. Never commit connection credentials.
+# The API expects a key named `connections.json` containing its private
+# DatabaseConnections JSON document.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nexora-api-connections
+type: Opaque
+stringData:
+  connections.json: REPLACE_OUT_OF_BAND
