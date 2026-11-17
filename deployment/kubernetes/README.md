@@ -4,18 +4,18 @@ These manifests are deployment inputs, not a CD system. They are maintained in t
 
 ## Version policy
 
-The release version for this set is `0.2.0`. The API and web repositories publish CI artifacts and locally built images using the same SemVer release tag:
+The release version for this set is `0.2.0`. The API and web images use the same SemVer release tag:
 
 ```text
 nexora-api:0.2.0
 nexora-web:0.2.0
 ```
 
-`latest` and commit-derived tags are not part of the Nexora release policy. A future release must update the application versions, workflow artifact names, image tags, and this Kustomize image mapping together.
+`latest` and commit-derived tags are not part of the Nexora release policy. A future release must update the application versions, image tags, and this Kustomize image mapping together.
 
 ## Operator workflow
 
-1. Import `ghcr.io/torogoz-tech/nexora-api:0.2.0` and `ghcr.io/torogoz-tech/nexora-web:0.2.0` into the private server or cluster registry, or configure the cluster's read-only GHCR credentials.
+1. Import the `nexora-api:0.2.0` and `nexora-web:0.2.0` images into the private server or cluster registry.
 2. Create `nexora-api-config` from `base/configuration.example.yaml` with the real browser origin and schema.
 3. Create `nexora-api-connections` out of band with the private `connections.json` document.
 4. Configure the reverse proxy or Ingress to send browser traffic to `nexora-web` and `/api` plus `/mcp` traffic to `nexora-api`.

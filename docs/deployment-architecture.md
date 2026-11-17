@@ -112,9 +112,7 @@ A container rollout, a green build, or a successful migration alone does not pro
 
 The reviewed base manifests are maintained in [`deployment/kubernetes/base`](../deployment/kubernetes/base) in this documentation repository. They describe the API and web Deployments and ClusterIP Services, health/readiness probes, non-root security contexts, resource starting points, and external configuration boundaries. They intentionally do not contain production secrets, persistent-volume choices, ingress hosts, registry credentials, or CD automation.
 
-The release version is SemVer. For the current `0.2.0` release, both runtime images and CI artifacts use the `0.2.0` tag/name. `latest` and commit-derived tags are not part of the release policy. Updating a release requires keeping the API, web, workflow artifacts, image tags, and Kustomize image mapping aligned.
-
-The application repositories' CI pipelines compile or build each application once, upload the result as a `0.2.0` workflow artifact, and build the runtime image from that artifact in a dependent job. On pushes to `main`, CI publishes the versioned image to GHCR using the repository secret `NUGET_TOKEN`; pull requests do not publish images. CI never accesses the private server or applies Kubernetes resources. CD remains an operator responsibility.
+The release version is SemVer. For the current `0.2.0` release, both runtime images use the `0.2.0` tag. `latest` and commit-derived tags are not part of the release policy. Updating a release requires keeping the API, web, image tags, and Kustomize image mapping aligned.
 
 ## Current Kubernetes workstream
 
