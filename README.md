@@ -228,7 +228,7 @@ The first command validates the workspace. The language listing shows the profil
 
 ## Release status
 
-The API and web repositories currently target the `0.2.0` release line. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). Container artifacts and images use the same SemVer release version, while CI remains separate from CD. This release is an early open-source foundation: GitLab live verification, Azure DevOps connectivity, and Kubernetes scale-out remain explicitly documented workstreams.
+The API runtime fix targets `0.2.1`; the unchanged web remains on `0.2.0`. See [official-image VPS deployment](deployment/compose/README.md) for installation and updates. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). Container artifacts and images use the same SemVer release version, while CI remains separate from CD. This release is an early open-source foundation: GitLab live verification, Azure DevOps connectivity, and Kubernetes scale-out remain explicitly documented workstreams.
 
 ## Validated deployment and current infrastructure focus
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- Add the official-image VPS deployment for API, worker and web, preserving existing databases, secrets and Cloudflare routing.
+- Resolve release tags to immutable image digests and guard activation with runtime checks, backups and schema-aware recovery.
+
 ## 0.2.0
 
 - Added versioned Kubernetes deployment inputs for the API and web applications.
