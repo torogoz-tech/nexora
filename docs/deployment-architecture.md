@@ -108,10 +108,16 @@ An operational release should follow this order:
 
 A container rollout, a green build, or a successful migration alone does not prove that Nexora has been delivered successfully.
 
+## Kubernetes deployment artifacts
+
+The reviewed base manifests are maintained in [`deployment/kubernetes/base`](../deployment/kubernetes/base) in this documentation repository. They describe the API and web Deployments and ClusterIP Services, health/readiness probes, non-root security contexts, resource starting points, and external configuration boundaries. They intentionally do not contain production secrets, persistent-volume choices, ingress hosts, registry credentials, or CD automation.
+
+The release version is SemVer. For the current `0.2.0` release, both runtime images use the `0.2.0` tag. `latest` and commit-derived tags are not part of the release policy. Updating a release requires keeping the API, web, image tags, and Kustomize image mapping aligned.
+
 ## Current Kubernetes workstream
 
-The team is currently working on the Kubernetes installation so Nexora can scale beyond a single VPS. The next implementation work is to convert this reference topology into reviewed deployment artifacts, deploy it to the target cluster, exercise migrations and persistent volumes, and verify snapshot publication, graph projection, web/API routing, backups, and recovery under the real cluster configuration.
+The team is currently working on the Kubernetes installation so Nexora can scale beyond a single VPS. The next implementation work is to apply the reviewed base artifacts through an operator-owned overlay, deploy them to the target cluster, exercise migrations and persistent volumes, and verify snapshot publication, graph projection, web/API routing, backups, and recovery under the real cluster configuration.
 
 ## Current publication boundary
 
-Version `0.1.0` provides local Compose infrastructure, the application/runtime contracts, and the Kubernetes architecture and requirements described here. The platform behavior has already been validated in a real self-hosted deployment. The public source does not yet provide a universal certified Kubernetes manifest set, production sizing profile, managed database service, or high-availability guarantee; those remain the active scale-out workstream and require their own tested artifacts and operational evidence.
+Version `0.2.0` provides the application container build contracts, CI artifact flow, and reviewed Kubernetes base inputs described here. The platform behavior has already been validated in a real self-hosted deployment. The public source does not yet provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
