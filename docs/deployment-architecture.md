@@ -123,7 +123,7 @@ A container rollout, a green build, or a successful migration alone does not pro
 
 The reviewed base manifests are maintained in [`deployment/kubernetes/base`](../deployment/kubernetes/base) in this documentation repository. They describe the API and web Deployments and ClusterIP Services, health/readiness probes, non-root security contexts, resource starting points, and external configuration boundaries. They intentionally do not contain production secrets, persistent-volume choices, ingress hosts, registry credentials, or CD automation.
 
-The coordinated component set is version `0.4.0`; its seven service images use that SemVer tag. `latest` and commit-derived tags are not part of the release policy. The current base manifests predate this split and only describe the API and web. They are not a complete 0.4.0 deployment and must be replaced after the standalone MCP and worker runtimes are available.
+The coordinated component set is version `0.4.0`; its seven service images use that SemVer tag. `latest` and commit-derived tags are not part of the release policy. The Kubernetes base includes API, web, MCP gateway, and the four independent worker workloads. It supplies generic image names and example configuration; operators provide private credentials, network controls, persistent storage, ingress, and environment sizing through private overlays.
 
 ## Current Kubernetes workstream
 
@@ -131,8 +131,8 @@ The team is currently working on the Kubernetes installation so Nexora can scale
 
 ## Current publication boundary
 
-The 0.4.0 component boundary is being prepared. The platform behavior has already been validated in a real self-hosted deployment, but the independent MCP and worker repositories and complete Kubernetes inputs are not yet available. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
+The 0.4.0 component boundary is prepared in local repositories. The MCP gateway separates transport while API authorization and tool execution remain in the API. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
 
 ## Official-image VPS deployment
 
-The existing single-server installation can switch from native executables to containers without replacing the data services or Cloudflare Tunnel. The current Compose guide documents the earlier API/worker/web topology; it must be updated with the four independent workers and MCP service before it can be used for the 0.4.0 cutover.
+The existing single-server installation can switch from native executables to containers without replacing the data services or Cloudflare Tunnel. The Compose guide describes container operation; use the 0.4.0 component topology when planning the cutover: API, MCP gateway, four workers, and web.

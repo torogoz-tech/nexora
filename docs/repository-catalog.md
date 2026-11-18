@@ -13,17 +13,17 @@ All public repositories are independent Git projects. They share a product famil
 
 ## Coordinated service set 0.4.0
 
-The following seven repositories define the target component boundary. The analysis, release, and notification workers have standalone local repositories. Their API cutovers, remote repositories, and deployment workloads are not ready. The MCP and knowledge worker repositories are still pending.
+The seven repositories below define the coordinated component boundary. The API now creates durable jobs and publishes RabbitMQ wake-ups. Four standalone worker repositories own analysis, release, knowledge, and notification work. A separate MCP gateway handles transport and forwards authenticated requests to the private API; authorization, tool catalog, and tool execution remain API responsibilities. Kubernetes workloads are included in this release's deployment inputs. The new service repositories are currently local and require remote repositories before publication.
 
 | Repository | Responsibility | 0.4.0 status |
 | --- | --- | --- |
 | `nexora-web` | Browser application | Version metadata prepared |
-| `nexora-api` | Authenticated domain API and durable job creation | Version metadata and RabbitMQ wake-up publisher prepared; worker extraction pending |
-| `nexora-mcp` | Remote MCP protocol and API client | Repository not created |
-| `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
-| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
-| `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Repository not created |
-| `nexora-notification-worker` | External email and notification delivery | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
+| `nexora-api` | Authenticated domain API and durable job creation | Version 0.4.0; RabbitMQ wake-up publisher; worker commands and embedded knowledge scheduler removed |
+| `nexora-mcp` | MCP transport gateway forwarding to the private API | Local 0.4.0 repository and runtime prepared; API continues to own MCP authorization and tool execution |
+| `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Local 0.4.0 repository, focused tests, and Kubernetes workload prepared |
+| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Local 0.4.0 repository and Kubernetes workload prepared |
+| `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Local 0.4.0 repository and Kubernetes workload prepared; scheduled daily job discovery remains in this worker |
+| `nexora-notification-worker` | External email and notification delivery | Local 0.4.0 repository and Kubernetes workload prepared |
 
 ## Analysis profile repositories
 

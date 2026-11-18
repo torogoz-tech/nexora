@@ -1,0 +1,315 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-analysis-worker
+  labels:
+    app.kubernetes.io/name: nexora-analysis-worker
+    app.kubernetes.io/part-of: nexora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexora-analysis-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexora-analysis-worker
+        app.kubernetes.io/part-of: nexora
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-workspace
+          image: busybox:1.37
+          command: ["sh", "-ec", "mkdir -p /var/lib/nexora/source && chown 10001:10001 /var/lib/nexora/source && chmod 0700 /var/lib/nexora/source"]
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN, FOWNER]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: workspace
+              mountPath: /var/lib/nexora
+      containers:
+        - name: worker
+          image: nexora-analysis-worker:0.4.0
+          imagePullPolicy: IfNotPresent
+          args: ["--connections", "/var/run/nexora/connections.json", "--settings", "/etc/nexora/analysis-worker.json", "--schema", "nexora_platform"]
+          env:
+            - name: NEXORA_WORKER_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NEXORA_RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nexora-runtime-secrets
+                  key: rabbitmq-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: connections
+              mountPath: /var/run/nexora
+              readOnly: true
+            - name: worker-config
+              mountPath: /etc/nexora/analysis-worker.json
+              subPath: analysis-worker.json
+              readOnly: true
+            - name: profiles
+              mountPath: /opt/nexora/profiles
+              readOnly: true
+            - name: workspace
+              mountPath: /var/lib/nexora
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {cpu: "4", memory: 8Gi}
+      volumes:
+        - name: connections
+          secret:
+            secretName: nexora-api-connections
+        - name: worker-config
+          configMap:
+            name: nexora-worker-config
+        - name: profiles
+          persistentVolumeClaim:
+            claimName: nexora-language-profiles
+        - name: workspace
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-release-worker
+  labels:
+    app.kubernetes.io/name: nexora-release-worker
+    app.kubernetes.io/part-of: nexora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexora-release-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexora-release-worker
+        app.kubernetes.io/part-of: nexora
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: prepare-workspace
+          image: busybox:1.37
+          command: ["sh", "-ec", "mkdir -p /var/lib/nexora/source && chown 10001:10001 /var/lib/nexora/source && chmod 0700 /var/lib/nexora/source"]
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            runAsNonRoot: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              add: [CHOWN, FOWNER]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: workspace
+              mountPath: /var/lib/nexora
+      containers:
+        - name: worker
+          image: nexora-release-worker:0.4.0
+          imagePullPolicy: IfNotPresent
+          args: ["--connections", "/var/run/nexora/connections.json", "--settings", "/etc/nexora/release-worker.json", "--schema", "nexora_platform"]
+          env:
+            - name: NEXORA_RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nexora-runtime-secrets
+                  key: rabbitmq-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: connections
+              mountPath: /var/run/nexora
+              readOnly: true
+            - name: worker-config
+              mountPath: /etc/nexora/release-worker.json
+              subPath: release-worker.json
+              readOnly: true
+            - name: workspace
+              mountPath: /var/lib/nexora
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+      volumes:
+        - name: connections
+          secret:
+            secretName: nexora-api-connections
+        - name: worker-config
+          configMap:
+            name: nexora-worker-config
+        - name: workspace
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-knowledge-worker
+  labels:
+    app.kubernetes.io/name: nexora-knowledge-worker
+    app.kubernetes.io/part-of: nexora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexora-knowledge-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexora-knowledge-worker
+        app.kubernetes.io/part-of: nexora
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: nexora-knowledge-worker:0.4.0
+          imagePullPolicy: IfNotPresent
+          args: ["--connections", "/var/run/nexora/connections.json", "--schema", "nexora_platform", "--settings", "/etc/nexora/reasoning-settings.json"]
+          env:
+            - name: NEXORA_RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nexora-runtime-secrets
+                  key: rabbitmq-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: connections
+              mountPath: /var/run/nexora
+              readOnly: true
+            - name: worker-config
+              mountPath: /etc/nexora/reasoning-settings.json
+              subPath: reasoning-settings.json
+              readOnly: true
+            - name: reasoning-key
+              mountPath: /var/run/reasoning
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+      volumes:
+        - name: connections
+          secret:
+            secretName: nexora-api-connections
+        - name: worker-config
+          configMap:
+            name: nexora-worker-config
+        - name: reasoning-key
+          secret:
+            secretName: nexora-runtime-secrets
+            items:
+              - key: openai-api-key
+                path: openai-api-key
+        - name: tmp
+          emptyDir: {}
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexora-notification-worker
+  labels:
+    app.kubernetes.io/name: nexora-notification-worker
+    app.kubernetes.io/part-of: nexora
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nexora-notification-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nexora-notification-worker
+        app.kubernetes.io/part-of: nexora
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: nexora-notification-worker:0.4.0
+          imagePullPolicy: IfNotPresent
+          args: ["--connections", "/var/run/nexora/connections.json", "--schema", "nexora_platform"]
+          env:
+            - name: NEXORA_RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nexora-runtime-secrets
+                  key: rabbitmq-url
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: connections
+              mountPath: /var/run/nexora
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+      volumes:
+        - name: connections
+          secret:
+            secretName: nexora-api-connections
+        - name: tmp
+          emptyDir: {}

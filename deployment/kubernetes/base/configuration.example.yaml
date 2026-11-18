@@ -5,6 +5,22 @@ metadata:
 data:
   NEXORA_CORS_ORIGIN: https://web.example.invalid
   NEXORA_DB_SCHEMA: nexora_platform
+  NEXORA_MCP_UPSTREAM: http://nexora-api:18080/mcp
+  NEXORA_MCP_BIND: 0.0.0.0:18081
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexora-worker-config
+data:
+  analysis-worker.json: |
+    {"id":"analysis-0","source_root":"/var/lib/nexora/source","git_binary":"/usr/bin/git","profiles":{"javascript":{"directory":"/opt/nexora/profiles/javascript","language_id":"javascript"}}}
+  release-worker.json: |
+    {"source_root":"/var/lib/nexora/source","git_binary":"/usr/bin/git"}
+  reasoning-settings.json: |
+    {"key_file":"/var/run/reasoning/openai-api-key","model":"REPLACE_WITH_APPROVED_MODEL","effort":"medium"}
 
 ---
 
@@ -18,3 +34,14 @@ metadata:
 type: Opaque
 stringData:
   connections.json: REPLACE_OUT_OF_BAND
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nexora-runtime-secrets
+type: Opaque
+stringData:
+  rabbitmq-url: REPLACE_OUT_OF_BAND
+  openai-api-key: REPLACE_OUT_OF_BAND

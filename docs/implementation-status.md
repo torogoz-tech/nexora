@@ -28,9 +28,9 @@ This table prevents the public documentation from promising more than the source
 
 ### Coordinated service extraction 0.4.0
 
-The target boundary contains seven services: web, API, MCP, and four workers for analysis, release, knowledge, and external notifications. The API has a versioned RabbitMQ wake-up contract and publisher plus database recovery discovery. Local standalone repositories now exist for analysis, release, and notification workers; each has a focused executable, queue recovery, version 0.4.0 metadata, and container packaging. Their dependencies are pinned to the local API 0.4.0 revision, so that API commit must be published before these repositories can build remotely. The API still contains duplicate worker commands and code, and these repositories do not yet have remote projects or Kubernetes workloads. Knowledge/rating processing still starts inside the API process, and the MCP HTTP endpoint also remains there. The MCP and knowledge worker repositories, API cutovers, and complete service-level Kubernetes manifests are pending. Do not interpret this progress as completion of the 0.4.0 extraction.
+The coordinated 0.4.0 boundary contains seven services: web, API, MCP gateway, and four workers for analysis, release, knowledge, and external notifications. The API creates durable work records and publishes RabbitMQ wake-ups; workers recover eligible jobs from PostgreSQL at startup and broker reconnect, then claim work using database leases. The four worker executables and their tests now live in separate local repositories. API worker commands and embedded worker runtimes have been removed. A standalone MCP transport gateway forwards authenticated requests to the private API; MCP authorization, tool catalog, and execution remain API responsibilities. Kubernetes workload manifests cover the seven services. The new service repositories are local and their API dependency is pinned to the local API 0.4.0 commit, so the API revision must be available remotely before independent remote builds can resolve it. These repositories still need remote projects and operator-owned deployment overlays, credentials, network policy, and sizing.
 
-The current infrastructure workstream is the Kubernetes installation for Nexora scale-out. The objective is to move from the verified local Compose topology and single-host deployment guidance toward a repeatable Kubernetes deployment with:
+The Kubernetes base for the seven-service topology is now present. The remaining work is to validate it with the operator's private overlay and target cluster, including:
 
 - API and worker deployments;
 - web delivery behind an ingress;
@@ -42,6 +42,6 @@ The current infrastructure workstream is the Kubernetes installation for Nexora 
 - monitoring, backups, restore tests, and failure recovery;
 - measured resource requests and limits.
 
-This work is active and must be verified in the target cluster before the scale-out installation is described as production-ready. The existing platform behavior is already validated in real operation; the public repository contains the architecture and requirements, not a universal Kubernetes manifest set or a capacity guarantee.
+The manifests are deployment inputs, not evidence of a cluster rollout. The target-cluster apply, storage and network policy validation, recovery drills, and measured capacity work remain outstanding before describing the Kubernetes installation as production-ready.
 
-The current validation cohort is a continuous group of 10 developers. Fixes discovered through their task and workflow use will be completed before Kubernetes scale testing begins.
+The continuous developer validation cohort and its feedback loop remain active alongside infrastructure validation.
