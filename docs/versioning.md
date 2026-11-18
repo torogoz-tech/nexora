@@ -15,7 +15,7 @@ Each repository owns its own version and release history:
 | Component | Version source | Compatibility responsibility |
 | --- | --- | --- |
 | `nexora` | `VERSION`, release documentation, and release tag | Describes the ecosystem and its coordinated release map. |
-| `nexora-api` | Cargo workspace version | Owns the engine, storage, HTTP API, MCP contracts, and runtime compatibility. |
+| `nexora-api` | Cargo workspace version | Owns the HTTP API, platform authority, and MCP authorization and tool execution. |
 | `nexora-web` | `package.json` and lockfile root metadata | Owns the browser application and its API client contract. |
 | `nexora-skill` | `VERSION` | Owns agent workflow guidance and the expected MCP/authority interaction. |
 | `nexora-profile-*` | `VERSION` and `profile/language.yaml` | Owns one declarative language profile and its fixtures and support boundary. |
@@ -24,9 +24,9 @@ The version of a dependency must be recorded in release notes or a compatibility
 
 ### Coordinated service release 0.4.0
 
-The `0.4.0` delivery coordinates seven independently versioned service repositories: `nexora-web`, `nexora-api`, `nexora-mcp`, `nexora-analysis-worker`, `nexora-release-worker`, `nexora-knowledge-worker`, and `nexora-notification-worker`. Each service uses its own repository, executable, image, and release notes. The API stores durable jobs in PostgreSQL; RabbitMQ carries wake-up messages; each worker claims and completes its own jobs from PostgreSQL. The MCP gateway separates transport while API authorization and tool execution remain in the API. This release does not change the version of language-profile repositories or the agent skill unless their own compatibility requires a separate release.
+The `0.4.0` delivery coordinates seven independently versioned service repositories: `nexora-web`, `nexora-api`, `nexora-mcp`, `nexora-analysis-worker`, `nexora-release-worker`, `nexora-knowledge-worker`, and `nexora-notification-worker`. Each service is versioned in its own repository. The API stores durable jobs in PostgreSQL. RabbitMQ carries wake-up messages, and each worker claims and completes its own jobs from PostgreSQL. The MCP gateway separates transport while API authorization and tool execution remain in the API. This release does not change the version of language-profile repositories or the agent skill unless their own compatibility requires a separate release.
 
-The 0.4.0 service extraction is prepared locally, including the four worker repositories, MCP gateway, API cutover, and Kubernetes workloads. The new service repositories do not yet have remote repositories. Operator-specific credentials, private network policy, storage, ingress, and resource overlays remain environment-owned.
+All seven service repositories have Git remotes. The coordinated version identifies the intended component set. Confirm image availability and job lifecycles before completing a deployment. The [deployment architecture](deployment-architecture.md) describes the infrastructure requirements and staged cutover.
 
 ## Container versions
 

@@ -228,7 +228,9 @@ The first command validates the workspace. The language listing shows the profil
 
 ## Release status
 
-The coordinated component release is `0.4.0`. It covers the existing web and API repositories plus standalone MCP, analysis, release, knowledge, and notification services. Each service has its own repository and SemVer history. See [Versioning and release policy](docs/versioning.md) for the compatibility map. The service extraction and Kubernetes deployment inputs are still in progress; the existing manifests describe the earlier API/web deployment and are not a complete 0.4.0 installation.
+The coordinated `0.4.0` release defines seven application services: web, API, the MCP gateway, and four workers for analysis, releases, knowledge, and notifications. PostgreSQL is the source of truth for domain state and jobs. RabbitMQ wakes workers, which claim and recover eligible jobs from PostgreSQL. The release worker owns recovery of pending task transitions and release composition.
+
+The [Docker Compose guide](deployment/compose/README.md) covers the versioned overlay, which includes RabbitMQ. The [Kubernetes guide](deployment/kubernetes/README.md) covers the seven application workloads and the RabbitMQ service operators must provide. See the [deployment architecture](docs/deployment-architecture.md) for responsibilities and cutover checks, and the [versioning policy](docs/versioning.md#coordinated-service-release-040) for the component set.
 
 ## Validated deployment and current infrastructure focus
 
@@ -238,7 +240,7 @@ The current operational validation is being carried out with a continuous workin
 
 The team's principal repository connectors are GitHub, GitLab, and Azure DevOps. GitHub is the connector currently checked in the available verification work; GitLab is scheduled for live review this week; Azure DevOps is part of the connector roadmap and will be incorporated as a first-class provider without changing Nexora's repository-first model.
 
-The current infrastructure work is focused on the Kubernetes installation needed to scale beyond a single-host deployment. This includes packaging the API, web application, workers, PostgreSQL/pgvector, Dragonfly, and Neo4j with persistent storage, secret management, TLS, observability, migrations, backups, and recovery verification. Kubernetes scale-out is an active workstream, while the existing platform behavior has already been validated in real operation.
+The current infrastructure work is focused on the Kubernetes installation needed to scale beyond a single-host deployment. Cluster validation covers the seven application workloads, their infrastructure dependencies, and operator configuration for storage, secrets, TLS, observability, migrations, backups, and recovery. Kubernetes scale-out is an active workstream, while the existing platform behavior has already been validated in real operation.
 
 Kubernetes scale testing will begin after the fixes identified through continuous task and workflow management have been completed. This sequence lets the team validate the behavior that will actually be scaled, rather than scaling an unfinished workflow contract.
 

@@ -6,21 +6,27 @@ The current operational validation uses a continuous working group of 10 develop
 
 ## Components and state
 
+The coordinated 0.4.0 topology has seven application services: web, API, MCP, analysis, release, knowledge, and notifications. The broker and data services are supporting infrastructure.
+
 | Component | Role | State | Required protection |
 | --- | --- | --- | --- |
 | `nexora-web` | Human-facing React application | Build artifacts and browser session | HTTPS, secure headers, API origin policy |
 | `nexora-api` | Authenticated domain API and durable job creation | Configuration and runtime state | Authentication, authorization, rate and process limits |
 | `nexora-mcp` | Remote MCP protocol and API client | MCP client keys and service configuration | API authorization remains authoritative |
 | PostgreSQL + pgvector | Durable authority for platform and runtime data | Persistent | Backups, encryption, restricted network, migrations |
-| RabbitMQ | Durable worker wake-up transport | Rebuildable from pending PostgreSQL jobs | Private network, durable queues, confirms, bounded consumers |
+| RabbitMQ | Worker wake-up transport | Broker queues | Private network, durable queues, confirms, bounded consumers |
 | Dragonfly-compatible cache | Reusable analysis fragments and query cache | Disposable/recoverable | Private network, memory limit, authenticated access |
 | Neo4j | Relationship and graph traversal projection | Persistent projection | Backups/rebuild plan, restricted network, authenticated access |
 | `nexora-analysis-worker` | Repository checkout and complete language-analysis pipeline | Analysis job state | Git credential isolation, idempotency, bounded CPU and memory |
-| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Release job state | Git credential isolation, idempotency, bounded concurrency |
+| `nexora-release-worker` | Recovery of pending task transitions, release composition, and Git publication | Transition and release job state in PostgreSQL | Git credential isolation, idempotency, bounded concurrency |
 | `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Knowledge job state | Provider isolation, idempotency, bounded concurrency |
 | `nexora-notification-worker` | External email and notification delivery | Delivery job state | Provider isolation, deduplication, bounded retries |
 
-PostgreSQL is the authoritative store for jobs and domain state. RabbitMQ wakes workers; startup and broker-reconnect recovery must find eligible PostgreSQL work even when a wake-up was missed. Neo4j and vector structures are projections or retrieval indexes. Dragonfly is an optimization. Losing the cache should cause re-analysis, not loss of the canonical snapshot.
+PostgreSQL is the source of truth for jobs and domain state. The API persists work in PostgreSQL and sends a wake-up through RabbitMQ. Workers claim eligible jobs from PostgreSQL and check for pending work at startup and after reconnecting to the broker. The release worker checks both pending task transitions and release composition work. Neo4j and vector structures are projections or retrieval indexes. Dragonfly is an optimization. Losing the cache should cause re-analysis, not loss of the canonical snapshot.
+
+## RabbitMQ requirements
+
+The [Docker Compose overlay](../deployment/compose/README.md) includes RabbitMQ. Configure the broker user, password, and virtual host consistently with the URI used by the API and workers. For [Kubernetes](../deployment/kubernetes/README.md), provision a private RabbitMQ service and supply its URL through the runtime Secret. The API and all four workers need network access to that broker.
 
 ## VPS topology
 
@@ -30,17 +36,15 @@ Internet
   +--> Caddy/Nginx/Traefik (HTTPS, security headers, /api routing)
           |
           +--> Nexora Web static assets
-          +--> Nexora API
-          +--> Nexora MCP
-                    |
-                    +--> PostgreSQL/pgvector on private loopback/network
-                    +--> Dragonfly on private loopback/network
-                    +--> Neo4j on private loopback/network
-          +--> Analysis, release, knowledge, and notification workers
-                    +--> PostgreSQL and RabbitMQ on private loopback/network
+          +--> Nexora API (/api)
+          +--> Nexora MCP (/mcp) --> Nexora API
+
+Private application network
+  Nexora API --> PostgreSQL/pgvector, RabbitMQ, Dragonfly, Neo4j
+  Analysis, release, knowledge, and notification workers --> PostgreSQL and RabbitMQ
 ```
 
-The firewall should expose only ports 80/443 as required by the reverse proxy. SSH should be restricted to administrative access. Database ports, Neo4j HTTP/Bolt, and Dragonfly must not be public services.
+The firewall should expose only ports 80/443 as required by the reverse proxy. SSH should be restricted to administrative access. Keep RabbitMQ, PostgreSQL, Neo4j HTTP/Bolt, and Dragonfly on private interfaces.
 
 ### VPS minimum starting point
 
@@ -55,16 +59,12 @@ Ingress / Gateway API
         |
         +--> web Deployment or static object hosting
         +--> api Deployment (2+ replicas when HA is required)
-        +--> mcp Deployment
-        +--> analysis-worker Deployment (CPU/memory intensive)
-        +--> release-worker Deployment
-        +--> knowledge-worker Deployment (provider concurrency limits)
-        +--> notification-worker Deployment
-                    +--> PostgreSQL operator or managed PostgreSQL
-                    +--> RabbitMQ cluster/operator
-                    +--> Dragonfly StatefulSet or managed cache
-                    +--> Neo4j operator/StatefulSet or managed graph service
-                    +--> external secret manager
+        +--> mcp Deployment --> api Service
+
+Private workloads
+  analysis-worker, release-worker, knowledge-worker, notification-worker
+  api and the four workers --> PostgreSQL and operator-supplied RabbitMQ
+  Dragonfly, Neo4j, and secret management provided by the operator
 ```
 
 ### Kubernetes resource starting point
@@ -107,10 +107,10 @@ The local Compose configuration binds development ports to loopback. A VPS or Ku
 An operational release should follow this order:
 
 1. back up the durable stores;
-2. verify the exact API, web, and profile versions;
+2. verify the seven application image versions and compatible language profiles;
 3. run migrations as an explicit controlled step;
-4. deploy the API and workers;
-5. verify health, authentication, and configuration;
+4. confirm RabbitMQ connectivity, then deploy the API, MCP gateway, and workers;
+5. verify health, authentication, configuration, and one job lifecycle for each worker. Verify pending transition recovery before retiring the compatibility worker;
 6. deploy the web assets and verify `/api` routing;
 7. index or recover a synthetic repository;
 8. verify snapshot publication and graph projection;
@@ -121,7 +121,7 @@ A container rollout, a green build, or a successful migration alone does not pro
 
 ## Kubernetes deployment artifacts
 
-The reviewed base manifests are maintained in [`deployment/kubernetes/base`](../deployment/kubernetes/base) in this documentation repository. They describe the API and web Deployments and ClusterIP Services, health/readiness probes, non-root security contexts, resource starting points, and external configuration boundaries. They intentionally do not contain production secrets, persistent-volume choices, ingress hosts, registry credentials, or CD automation.
+The reviewed base manifests are maintained in [`deployment/kubernetes/base`](../deployment/kubernetes/base) in this documentation repository. They describe seven application Deployments, ClusterIP Services for web, API, and MCP, health probes, non-root security contexts, and resource starting points. They intentionally do not contain production secrets, persistent-volume choices, ingress hosts, registry credentials, or CD automation.
 
 The coordinated component set is version `0.4.0`; its seven service images use that SemVer tag. `latest` and commit-derived tags are not part of the release policy. The Kubernetes base includes API, web, MCP gateway, and the four independent worker workloads. It supplies generic image names and example configuration; operators provide private credentials, network controls, persistent storage, ingress, and environment sizing through private overlays.
 
@@ -131,8 +131,8 @@ The team is currently working on the Kubernetes installation so Nexora can scale
 
 ## Current publication boundary
 
-The 0.4.0 component boundary is prepared in local repositories. The MCP gateway separates transport while API authorization and tool execution remain in the API. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
+The deployment artifacts describe the intended 0.4.0 topology. Verify the availability of each image and the behavior of each worker in the target environment before completing the cutover. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
 
 ## Official-image VPS deployment
 
-The existing single-server installation can switch from native executables to containers without replacing the data services or Cloudflare Tunnel. The Compose guide describes container operation; use the 0.4.0 component topology when planning the cutover: API, MCP gateway, four workers, and web.
+Use the [Compose guide](../deployment/compose/README.md) for a staged single-host cutover. The overlay includes a compatibility worker during migration alongside the seven intended application services and RabbitMQ.

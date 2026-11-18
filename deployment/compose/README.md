@@ -2,7 +2,7 @@
 
 The coordinated Nexora `0.4.0` deployment uses seven application images: API, web, MCP, analysis, release, knowledge, and notification. RabbitMQ runs alongside them. PostgreSQL/pgvector, Dragonfly, and Neo4j remain in the separate data-service Compose project with their existing volumes.
 
-Compose loads `compose.yaml` and `compose-0.4.0.yaml` together. The first file defines the API and web; the versioned overlay adds MCP, RabbitMQ, and the independent workers. The compatibility worker remains available for a staged cutover. Retire it only after its work has moved to the replacement workers and a complete job lifecycle has been verified.
+Compose loads `compose.yaml` and `compose-0.4.0.yaml` together. The base file defines the API, web, and compatibility worker. The versioned overlay adds MCP, RabbitMQ, and the four independent workers for the staged cutover. PostgreSQL holds durable job state, and RabbitMQ wakes the workers. The release worker owns recovery of pending task transitions and release composition. Retire the compatibility worker after verifying that the replacement workers complete their job lifecycles, including pending transition recovery by the release worker.
 
 The API binds to `127.0.0.1:18081`, MCP to `127.0.0.1:18083`, web to `127.0.0.1:18082`, and RabbitMQ to `127.0.0.1:5672`. The host Nginx continues to serve port `18080`, route browser API and MCP traffic, and proxy static content. Cloudflare Tunnel and the data-service project are not changed by this application deployment.
 
