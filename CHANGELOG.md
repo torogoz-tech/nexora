@@ -4,7 +4,8 @@
 
 - Begin the coordinated component split for the API, remote MCP endpoint, and four independently scalable worker responsibilities.
 - Define PostgreSQL as the durable job authority and RabbitMQ as the worker wake-up transport.
-- Prepare the deployment and compatibility documentation for the seven-repository 0.4.0 set; Kubernetes inputs remain pending until the standalone service images and commands are available.
+- Add Docker Compose and Kubernetes deployment inputs for the seven-service 0.4.0 topology, including RabbitMQ and four independent workers.
+- Document operator-managed secrets, PostgreSQL migrations, health checks, and recovery boundaries without claiming that the release worker has been deployed.
 
 ## 0.2.1
 

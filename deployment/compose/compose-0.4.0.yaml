@@ -1,0 +1,193 @@
+services:
+  api:
+    environment:
+      NEXORA_RABBITMQ_URL: ${NEXORA_RABBITMQ_URL:?Set RabbitMQ URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  worker:
+    image: ${NEXORA_LEGACY_API_IMAGE:?Set legacy worker image}
+  rabbitmq:
+    image: rabbitmq:4.4.1-management-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?Set RabbitMQ user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RabbitMQ password}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_DEFAULT_VHOST:?Set RabbitMQ vhost}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    mem_limit: 1g
+    cpus: 1
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+  analysis-worker:
+    image: ${NEXORA_ANALYSIS_IMAGE:?Set analysis worker image}
+    user: "10001:10001"
+    group_add: ["987"]
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    working_dir: /tmp
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=256m"]
+    command: [--connections, /etc/nexora/worker-connections.json, --schema, nexora_platform, --settings, /etc/nexora/analysis-worker.json, --git-policy, /etc/nexora/git-policy.json]
+    environment:
+      NEXORA_RABBITMQ_URL: ${NEXORA_RABBITMQ_URL:?Set RabbitMQ URL}
+      NEXORA_WORKER_ID: analysis-worker-0.4.0-1
+    volumes:
+      - /etc/nexora/worker-connections.json:/etc/nexora/worker-connections.json:ro
+      - /etc/nexora/worker-secrets:/etc/nexora/worker-secrets:ro
+      - /etc/nexora/git-policy.json:/etc/nexora/git-policy.json:ro
+      - /etc/nexora/analysis-worker.json:/etc/nexora/analysis-worker.json:ro
+      - /var/lib/nexora/workspaces/analysis:/workspace
+    mem_limit: 4g
+    cpus: 2
+    stop_grace_period: 330s
+    logging:
+      driver: json-file
+      options: {max-size: 20m, max-file: "3"}
+    healthcheck:
+      test: [CMD-SHELL, "kill -0 1 && grep -q /usr/local/bin/nexora-analysis-worker /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      api: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+  release-worker:
+    image: ${NEXORA_RELEASE_IMAGE:?Set release worker image}
+    user: "10001:10001"
+    group_add: ["987"]
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    working_dir: /tmp
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=256m"]
+    command: [--connections, /etc/nexora/worker-connections.json, --schema, nexora_platform, --settings, /etc/nexora/release-worker.json, --git-policy, /etc/nexora/git-policy.json]
+    environment:
+      NEXORA_RABBITMQ_URL: ${NEXORA_RABBITMQ_URL:?Set RabbitMQ URL}
+    volumes:
+      - /etc/nexora/worker-connections.json:/etc/nexora/worker-connections.json:ro
+      - /etc/nexora/worker-secrets:/etc/nexora/worker-secrets:ro
+      - /etc/nexora/git-policy.json:/etc/nexora/git-policy.json:ro
+      - /etc/nexora/release-worker.json:/etc/nexora/release-worker.json:ro
+      - /var/lib/nexora/workspaces/release:/workspace
+    mem_limit: 2g
+    cpus: 1
+    stop_grace_period: 330s
+    logging:
+      driver: json-file
+      options: {max-size: 20m, max-file: "3"}
+    healthcheck:
+      test: [CMD-SHELL, "kill -0 1 && grep -q /usr/local/bin/nexora-release-worker /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      api: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+  knowledge-worker:
+    image: ${NEXORA_KNOWLEDGE_IMAGE:?Set knowledge worker image}
+    user: "10001:10001"
+    group_add: ["987"]
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    working_dir: /tmp
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=128m"]
+    command: [--connections, /etc/nexora/worker-connections.json, --schema, nexora_platform, --settings, /etc/nexora/reasoning.json]
+    environment:
+      NEXORA_RABBITMQ_URL: ${NEXORA_RABBITMQ_URL:?Set RabbitMQ URL}
+    volumes:
+      - /etc/nexora/worker-connections.json:/etc/nexora/worker-connections.json:ro
+      - /etc/nexora/worker-secrets:/etc/nexora/worker-secrets:ro
+      - /etc/nexora/reasoning.json:/etc/nexora/reasoning.json:ro
+    mem_limit: 2g
+    cpus: 1
+    stop_grace_period: 330s
+    logging:
+      driver: json-file
+      options: {max-size: 20m, max-file: "3"}
+    healthcheck:
+      test: [CMD-SHELL, "kill -0 1 && grep -q /usr/local/bin/nexora-knowledge-worker /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      api: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+  notification-worker:
+    image: ${NEXORA_NOTIFICATION_IMAGE:?Set notification worker image}
+    user: "10001:10001"
+    group_add: ["987"]
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    working_dir: /tmp
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=64m"]
+    command: [--connections, /etc/nexora/worker-connections.json, --schema, nexora_platform]
+    environment:
+      NEXORA_RABBITMQ_URL: ${NEXORA_RABBITMQ_URL:?Set RabbitMQ URL}
+    volumes:
+      - /etc/nexora/worker-connections.json:/etc/nexora/worker-connections.json:ro
+      - /etc/nexora/worker-secrets:/etc/nexora/worker-secrets:ro
+    mem_limit: 512m
+    cpus: 1
+    stop_grace_period: 90s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+    healthcheck:
+      test: [CMD-SHELL, "kill -0 1 && grep -q /usr/local/bin/nexora-notification-worker /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      api: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+  mcp:
+    image: ${NEXORA_MCP_IMAGE:?Set MCP image}
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,nosuid,nodev,size=64m"]
+    environment:
+      NEXORA_MCP_BIND: 127.0.0.1:18083
+      NEXORA_MCP_UPSTREAM: http://127.0.0.1:18081/mcp
+    mem_limit: 512m
+    cpus: 1
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+    healthcheck:
+      test: [CMD-SHELL, "kill -0 1 && grep -q /usr/local/bin/nexora-mcp /proc/1/cmdline"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      api: {condition: service_healthy}
+volumes:
+  rabbitmq_data:
