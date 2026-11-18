@@ -13,6 +13,7 @@ docker compose -f "$root/compose.yaml" --env-file "$root/images.env.example" con
 python3 - "$temporary/source.json" "$temporary/compose.json" <<'PY'
 import json,sys
 worker=json.load(open(sys.argv[1]))['services']['worker']
+worker['image']='ubuntu:24.04'
 for field in ['volumes','depends_on','command','restart']:
     worker.pop(field,None)
 worker['network_mode']='none'
