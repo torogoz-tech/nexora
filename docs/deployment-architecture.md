@@ -110,7 +110,7 @@ An operational release should follow this order:
 2. verify the seven application image versions and compatible language profiles;
 3. run migrations as an explicit controlled step;
 4. confirm RabbitMQ connectivity, then deploy the API, MCP gateway, and workers;
-5. verify health, authentication, and configuration. In an isolated environment, stop the compatibility worker and verify release composition and task transition recovery attributable to release-worker before retiring the compatibility worker;
+5. verify health, authentication, and configuration, then complete and verify one job lifecycle for each worker: analysis, knowledge, and notifications. In a controlled, isolated environment with the compatibility worker stopped or excluded, separately verify task transition recovery and release composition attributable to release-worker before retiring the compatibility worker;
 6. deploy the web assets and verify `/api` routing;
 7. index or recover a synthetic repository;
 8. verify snapshot publication and graph projection;
