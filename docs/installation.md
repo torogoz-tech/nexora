@@ -12,7 +12,7 @@ The API repository provides `infra/local/compose.yaml` for a development stack c
 
 ## VPS self-hosting
 
-For a small self-hosted installation, use one VPS for the API, web reverse proxy, and stateful services only when the workload and recovery objectives justify that concentration. A starting point is:
+For a small self-hosted installation, use the [0.4.0 Compose overlay](../deployment/compose/README.md). It includes RabbitMQ alongside the seven application services and uses a separate data-service project. Run them on one VPS only when the workload and recovery objectives support that arrangement. A starting point is:
 
 | Resource | Development/small team starting point | Production planning note |
 | --- | ---: | --- |
@@ -20,35 +20,20 @@ For a small self-hosted installation, use one VPS for the API, web reverse proxy
 | RAM | 8 GiB | 16 GiB is a safer starting point when all stateful services share the host. |
 | SSD | 80 GiB free | Size from snapshot history, knowledge files, graph data, logs, and backup retention. |
 | OS | Current supported Linux distribution | Apply security updates and time synchronization. |
-| Network | Reverse proxy with HTTPS | Expose only the web/API entry point; keep databases private. |
+| Network | Reverse proxy with HTTPS | Expose web and the API/MCP routes through the proxy. Keep the broker and data services private. |
 
 These are deployment starting points, not measured capacity guarantees. The authoritative sizing work still requires representative repositories, concurrent users, indexing frequency, knowledge volume, and retention policy.
 
 ## Kubernetes
 
-Nexora has been validated in a real self-hosted deployment. The public `0.1.0` source intentionally does not include deployment-specific identifiers or private infrastructure details, and it does not yet provide a general-purpose certified Helm chart or Kubernetes manifest set for every environment. Kubernetes operators must create or supply the deployment configuration and verify it in their environment while the scale-out installation is being completed.
-
-The reference topology is:
-
-```text
-Ingress + TLS
-      |
-      +--> nexora-web Deployment or static hosting
-      |
-      +--> nexora-api Deployment
-                 |
-                 +--> PostgreSQL/pgvector Stateful service
-                 +--> Dragonfly-compatible cache
-                 +--> Neo4j graph service
-                 +--> repository worker capacity
-```
+The [Kubernetes base](../deployment/kubernetes/README.md) defines all seven 0.4.0 application workloads: web, API, the MCP gateway, and the analysis, release, knowledge, and notification workers. Operators supply RabbitMQ, PostgreSQL/pgvector, Dragonfly, Neo4j, and environment-specific configuration. The API stores durable jobs in PostgreSQL and sends wake-up messages through RabbitMQ. Workers claim eligible jobs from PostgreSQL.
 
 Minimum architectural requirements for Kubernetes are:
 
 - persistent volumes for PostgreSQL and Neo4j;
 - a deliberate retention and backup policy;
 - separate Kubernetes Secrets or an external secret manager;
-- NetworkPolicies that keep databases private;
+- NetworkPolicies that keep RabbitMQ and data services private;
 - TLS at the ingress or service mesh boundary;
 - readiness and liveness checks that do not confuse process health with snapshot publication;
 - migration execution controlled as a release step;
@@ -56,7 +41,7 @@ Minimum architectural requirements for Kubernetes are:
 - monitoring for disk, memory, cache evictions, failed publications, queue depth, and database health;
 - a recovery test for PostgreSQL, graph projection, and application configuration.
 
-Do not run PostgreSQL or Neo4j on ephemeral storage. Do not expose Neo4j Browser, Bolt, PostgreSQL, or Dragonfly directly to the public internet. Do not treat a Kubernetes rollout as a successful Nexora release until the API health, migrations, current snapshot publication, graph projection, and web/API path have been verified.
+Do not run PostgreSQL or Neo4j on ephemeral storage. Do not expose Neo4j Browser, Bolt, PostgreSQL, Dragonfly, or RabbitMQ directly to the public internet. Do not treat a Kubernetes rollout as a successful Nexora release until the API health, migrations, current snapshot publication, graph projection, and web/API path have been verified.
 
 See [deployment architecture](deployment-architecture.md) for the complete topology and operational checklist.
 

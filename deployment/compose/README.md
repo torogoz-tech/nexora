@@ -1,8 +1,10 @@
 # Docker Compose deployment
 
-The coordinated Nexora `0.4.0` deployment uses seven application images: API, web, MCP, analysis, release, knowledge, and notification. RabbitMQ runs alongside them. PostgreSQL/pgvector, Dragonfly, and Neo4j remain in the separate data-service Compose project with their existing volumes.
+The `0.4.0` Compose files document a staged migration of the existing single-host installation. They are not a stand-alone installation recipe. They expect the existing data-service project, configuration, secrets, and volumes to remain in place.
 
-Compose loads `compose.yaml` and `compose-0.4.0.yaml` together. The first file defines the API and web; the versioned overlay adds MCP, RabbitMQ, and the independent workers. The compatibility worker remains available for a staged cutover. Retire it only after its work has moved to the replacement workers and a complete job lifecycle has been verified.
+Compose loads `compose.yaml` and `compose-0.4.0.yaml` together. The base file defines the API, web, and compatibility worker. The overlay adds MCP, RabbitMQ, and the four independent workers. It requires `NEXORA_LEGACY_API_IMAGE` for the compatibility worker until that service is retired. PostgreSQL holds durable job state, and RabbitMQ wakes the workers. The release worker is intended to own recovery of pending task transitions and release composition.
+
+Before removing the compatibility worker, verify both release-worker functions in a controlled, isolated environment. Stop or exclude the legacy worker from that test, direct only the release worker to the isolated database schema and RabbitMQ queue, and create one eligible pending task transition and one queued release composition. Verify each run's database state transition and correlate it with the release worker's logs and consumed wake-up. Record the release worker identity and resulting run or release IDs as evidence. Repeat after a release-worker restart to verify startup recovery. A completion while the legacy worker is active does not establish which worker performed it. Retire the compatibility worker only after attributable evidence confirms both functions and startup recovery.
 
 The API binds to `127.0.0.1:18081`, MCP to `127.0.0.1:18083`, web to `127.0.0.1:18082`, and RabbitMQ to `127.0.0.1:5672`. The host Nginx continues to serve port `18080`, route browser API and MCP traffic, and proxy static content. Cloudflare Tunnel and the data-service project are not changed by this application deployment.
 

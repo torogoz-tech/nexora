@@ -4,7 +4,17 @@ These manifests describe the coordinated Nexora `0.4.0` service set. They are de
 
 ## Services and routing
 
-The base includes the web application, private API, MCP gateway, and four independent workers: analysis, release, knowledge, and notifications. The API stores durable jobs in PostgreSQL. RabbitMQ carries wake-up messages. Each worker recovers eligible work from PostgreSQL at startup and broker reconnect, and claims jobs using database leases. The API must not be exposed directly to the public network. Route browser `/api` traffic to `nexora-api`; route `/mcp` to `nexora-mcp`. The gateway forwards MCP requests to the API's cluster-private `/mcp` endpoint. The API remains authoritative for MCP authentication, authorization, tools, and execution.
+The base includes the web application, private API, MCP gateway, and four independent workers: analysis, release, knowledge, and notifications. PostgreSQL is the source of truth for durable jobs. RabbitMQ carries wake-up messages. The API and workers need network access to the broker and database. The API must not be exposed directly to the public network. Route browser `/api` traffic to `nexora-api`; route `/mcp` to `nexora-mcp`. The gateway forwards MCP requests to the API's cluster-private `/mcp` endpoint. The API remains authoritative for MCP authentication, authorization, tools, and execution.
+
+#### Current release composition coordination
+
+The release composition worker selects the oldest queued job or a running job whose `updated_at` is more than two minutes old. It then obtains a PostgreSQL session advisory lock keyed by release ID and rechecks that job's eligibility before processing. The lock serializes composition for the same release. A stale running composition is eligible for retry after that interval.
+
+#### Current task transition continuation
+
+The transition continuation worker selects one run with status `ready`, or status `waiting_external` with `updated_at` older than 30 seconds. This selection does not atomically claim the row. Transition execution obtains a PostgreSQL session advisory lock keyed by task ID to serialize executions for that task. A run left in `running` after a worker failure is not selected by the current continuation query and has no automatic abandoned-run recovery.
+
+The planned extraction into `nexora-task-workflow` is intended to add atomic transition claiming and recovery of abandoned `running` work. These are pending implementation and deployment verification. Until that behavior is implemented and verified, operators must not infer reliable transition recovery from the current advisory lock or from the presence of a RabbitMQ wake-up.
 
 All seven images use the explicit `0.4.0` tag. The manifests use generic image names so an operator overlay can set the private registry without changing the shared base.
 
@@ -12,7 +22,7 @@ All seven images use the explicit `0.4.0` tag. The manifests use generic image n
 
 1. Set the public browser origin and private API service URL in `base/configuration.example.yaml`, then create `nexora-api-config` and `nexora-worker-config` from the ConfigMap documents in that example. The Secret documents are examples only; do not apply their placeholder values.
 2. Create `nexora-api-connections` out of band. Its `connections.json` key must contain the private database connection document used by the API and workers.
-3. Create `nexora-runtime-secrets` out of band with `rabbitmq-url` and `openai-api-key`. Restrict access to the namespace and the service accounts that need these values.
+3. Provision a RabbitMQ service that the API and all four workers can reach on a private network. Configure a user and virtual host for Nexora. The base does not deploy the broker. Create `nexora-runtime-secrets` out of band with `rabbitmq-url` and `openai-api-key`. Set `rabbitmq-url` to the broker URI, including the configured credentials and virtual host. Restrict access to the Secret.
 4. Create the `nexora-language-profiles` PVC and populate it with the profile directories referenced by `analysis-worker.json`. The example shows one JavaScript profile; configure each enabled profile and mount its directory at the declared path.
 5. Configure the API and release worker Git network policies and credentials through private settings and restricted egress. Analysis and release require Git access; do not store credentials in ConfigMaps.
 6. Review worker requests and limits against repository sizes, model/provider limits, and expected concurrency. Scale worker deployments independently after validating database lease and provider limits.
