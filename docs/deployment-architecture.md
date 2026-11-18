@@ -1,8 +1,6 @@
 # Deployment architecture
 
-This document describes the infrastructure required to operate Nexora beyond offline analysis. Nexora has already been exercised successfully in a real self-hosted deployment. The document separates that operational validation from deployment recommendations and scale-out work that still require environment-specific verification.
-
-The current operational validation uses a continuous working group of 10 developers. Kubernetes scale testing is intentionally scheduled after the fixes discovered through task and workflow management have been completed.
+This document describes the approved target architecture for the coordinated `0.4.0` release and the checks needed before deployment. The topology and recovery behavior below are architectural requirements, not a claim that the release has been deployed or that every path has passed operational verification.
 
 ## Components and state
 
@@ -18,11 +16,11 @@ The coordinated 0.4.0 topology has seven application services: web, API, MCP, an
 | Dragonfly-compatible cache | Reusable analysis fragments and query cache | Disposable/recoverable | Private network, memory limit, authenticated access |
 | Neo4j | Relationship and graph traversal projection | Persistent projection | Backups/rebuild plan, restricted network, authenticated access |
 | `nexora-analysis-worker` | Repository checkout and complete language-analysis pipeline | Analysis job state | Git credential isolation, idempotency, bounded CPU and memory |
-| `nexora-release-worker` | Intended owner for task transition recovery, release composition, and Git publication | Transition and release job state in PostgreSQL | Git credential isolation, idempotency, bounded concurrency |
-| `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Knowledge job state | Provider isolation, idempotency, bounded concurrency |
+| `nexora-release-worker` | Release composition and Git publication; resumes a task transition after its asynchronous knowledge work completes | Transition and release job state in PostgreSQL | Git credential isolation, idempotency, bounded concurrency |
+| `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, AI task reviews, and contributor ratings | Knowledge job state | Provider isolation, idempotency, bounded concurrency |
 | `nexora-notification-worker` | External email and notification delivery | Delivery job state | Provider isolation, deduplication, bounded retries |
 
-PostgreSQL is the source of truth for jobs and domain state. The API persists work in PostgreSQL and sends a wake-up through RabbitMQ. Recovery and coordination are job-specific. Release composition uses a per-release PostgreSQL advisory lock and retries queued jobs or jobs left running beyond its stale interval. Task transition continuation scans ready runs and stale waiting_external runs, while a per-task PostgreSQL advisory lock serializes execution. The current transition scan does not atomically claim a run or recover a run abandoned in running. See the [Kubernetes guide](../deployment/kubernetes/README.md) for current details and the pending extraction target. Neo4j and vector structures are projections or retrieval indexes. Dragonfly is an optimization. Losing the cache should cause re-analysis, not loss of the canonical snapshot.
+PostgreSQL is the source of truth for domain state and durable jobs. The API records work there and publishes a wake-up through RabbitMQ. RabbitMQ is a dispatch signal, not the canonical job store. Workers recover eligible durable jobs at startup, including work left pending while a worker or broker was unavailable. Each job type needs its own claim, retry, idempotency, and completion rules; those details must be verified against the implementation before deployment. For AI task reviews and contributor ratings, the knowledge worker processes the durable job and the release worker resumes the waiting task transition after completion. Shared libraries are maintained in separate repositories and are not additional runtime services. No implementation or production cutover is certified by this architecture document. Neo4j and vector structures are projections or retrieval indexes. Dragonfly is an optimization. Losing the cache should cause re-analysis, not loss of the canonical snapshot.
 
 ## RabbitMQ requirements
 
@@ -107,10 +105,10 @@ The local Compose configuration binds development ports to loopback. A VPS or Ku
 An operational release should follow this order:
 
 1. back up the durable stores;
-2. verify the seven application image versions and compatible language profiles;
+2. verify compatible versions for the seven application services and their separately maintained language-analysis profiles;
 3. run migrations as an explicit controlled step;
 4. confirm RabbitMQ connectivity, then deploy the API, MCP gateway, and workers;
-5. verify health, authentication, and configuration, then complete and verify one job lifecycle for each worker: analysis, knowledge, and notifications. In a controlled, isolated environment with the compatibility worker stopped or excluded, separately verify task transition recovery and release composition attributable to release-worker before retiring the compatibility worker;
+5. verify health, authentication, and configuration, then complete and verify one job lifecycle for each of the four workers. Verify that startup recovers pending work after worker and broker restarts. Verify that a knowledge-worker review or rating completion wakes release-worker and resumes the corresponding transition before retiring any compatibility service;
 6. deploy the web assets and verify `/api` routing;
 7. index or recover a synthetic repository;
 8. verify snapshot publication and graph projection;
@@ -123,16 +121,16 @@ A container rollout, a green build, or a successful migration alone does not pro
 
 The reviewed base manifests are maintained in [`deployment/kubernetes/base`](../deployment/kubernetes/base) in this documentation repository. They describe seven application Deployments, ClusterIP Services for web, API, and MCP, health probes, non-root security contexts, and resource starting points. They intentionally do not contain production secrets, persistent-volume choices, ingress hosts, registry credentials, or CD automation.
 
-The coordinated component set is version `0.4.0`; its seven service images use that SemVer tag. `latest` and commit-derived tags are not part of the release policy. The Kubernetes base includes API, web, MCP gateway, and the four independent worker workloads. It supplies generic image names and example configuration; operators provide private credentials, network controls, persistent storage, ingress, and environment sizing through private overlays.
+The coordinated component set targets version `0.4.0`. The Kubernetes base describes API, web, MCP gateway, and four independent worker workloads. The artifacts do not establish image availability or readiness. Operators must verify compatible versioned images and provide credentials, network controls, persistent storage, ingress, and environment sizing through private overlays before deployment.
 
-## Current Kubernetes workstream
+## Deployment verification status
 
-The team is currently working on the Kubernetes installation so Nexora can scale beyond a single VPS. The next implementation work is to apply the reviewed base artifacts through an operator-owned overlay, deploy them to the target cluster, exercise migrations and persistent volumes, and verify snapshot publication, graph projection, web/API routing, backups, and recovery under the real cluster configuration.
+The `0.4.0` architecture and deployment inputs are in preparation. This repository does not certify a target-cluster deployment, image availability, migration execution, worker recovery, or successful end-to-end job processing. Treat deployment examples as preparation material until each service and recovery path has been verified in an isolated environment and then against the intended deployment configuration.
 
-## Current publication boundary
+## Publication boundary
 
-The deployment artifacts describe the intended 0.4.0 topology. Verify the availability of each image and the behavior of each worker in the target environment before completing the cutover. In particular, the current task transition continuation cannot recover abandoned running runs. Atomic claiming and abandoned-run recovery are goals of the planned extraction and remain pending implementation and deployment verification. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
+The deployment artifacts describe the target topology only. Verify each job claim and retry rule, startup recovery after worker and broker restarts, message acknowledgements, transition resumption, and each worker's end-to-end lifecycle before a cutover. The public source does not certify a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require tested overlays and evidence.
 
 ## Official-image VPS deployment
 
-Use the [Compose guide](../deployment/compose/README.md) for a staged single-host cutover. The overlay includes a compatibility worker during migration alongside the seven intended application services and RabbitMQ.
+Use the [Compose guide](../deployment/compose/README.md) as preparation material for a single-host deployment. Do not treat it as a verified cutover procedure until the listed image, migration, health, and recovery checks have been completed for the target environment.
