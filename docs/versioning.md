@@ -22,13 +22,24 @@ Each repository owns its own version and release history:
 
 The version of a dependency must be recorded in release notes or a compatibility matrix. A profile release is not automatically an API release, and a web release is not automatically proof that a provider integration is operational in every environment.
 
+### Coordinated service release 0.4.0
+
+The `0.4.0` delivery coordinates seven independently versioned service repositories: `nexora-web`, `nexora-api`, `nexora-mcp`, `nexora-analysis-worker`, `nexora-release-worker`, `nexora-knowledge-worker`, and `nexora-notification-worker`. Each service uses its own repository, executable, image, and release notes. The API stores durable jobs in PostgreSQL; RabbitMQ carries wake-up messages; each worker claims and completes its own jobs from PostgreSQL. The MCP gateway separates transport while API authorization and tool execution remain in the API. This release does not change the version of language-profile repositories or the agent skill unless their own compatibility requires a separate release.
+
+The 0.4.0 service extraction is prepared locally, including the four worker repositories, MCP gateway, API cutover, and Kubernetes workloads. The new service repositories do not yet have remote repositories. Operator-specific credentials, private network policy, storage, ingress, and resource overlays remain environment-owned.
+
 ## Container versions
 
-Runtime images use the SemVer version of the component release. For the `0.2.0` API and web release, the image tags are:
+Runtime images use the SemVer version of the component release. The coordinated service set uses `0.4.0` for each of its seven images:
 
 ```text
-nexora-api:0.2.0
-nexora-web:0.2.0
+nexora-api:0.4.0
+nexora-web:0.4.0
+nexora-mcp:0.4.0
+nexora-analysis-worker:0.4.0
+nexora-release-worker:0.4.0
+nexora-knowledge-worker:0.4.0
+nexora-notification-worker:0.4.0
 ```
 
 Floating and commit-derived tags are not part of the release policy. Kubernetes manifests reference the explicit release tag, and operators change that tag through a reviewed release update or private overlay.

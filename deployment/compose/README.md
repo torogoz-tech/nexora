@@ -1,43 +1,60 @@
-# Official images on the existing Nexora VPS
+# Docker Compose deployment
 
-This installation uses the official GHCR API and web images. API and worker are separate containers using the same API image; no additional worker repository or Rust compilation is needed on the host. The API image must include Git and its HTTPS transport (API 0.2.1 or later).
+The coordinated Nexora `0.4.0` deployment uses seven application images: API, web, MCP, analysis, release, knowledge, and notification. RabbitMQ runs alongside them. PostgreSQL/pgvector, Dragonfly, and Neo4j remain in the separate data-service Compose project with their existing volumes.
 
-The existing PostgreSQL/pgvector, Dragonfly and Neo4j Compose project and persistent volumes remain unchanged. Host networking for API/worker is intentional: Nexora currently accepts only loopback database hosts in connections.json. The API binds to 127.0.0.1:18081, not a public interface. The web container binds to 127.0.0.1:18082; the existing host Nginx on 18080 routes browser API/MCP traffic and proxies static content. Cloudflare Tunnel is not changed.
+Compose loads `compose.yaml` and `compose-0.4.0.yaml` together. The first file defines the API and web; the versioned overlay adds MCP, RabbitMQ, and the independent workers. The compatibility worker remains available for a staged cutover. Retire it only after its work has moved to the replacement workers and a complete job lifecycle has been verified.
 
-## Release flow
+The API binds to `127.0.0.1:18081`, MCP to `127.0.0.1:18083`, web to `127.0.0.1:18082`, and RabbitMQ to `127.0.0.1:5672`. The host Nginx continues to serve port `18080`, route browser API and MCP traffic, and proxy static content. Cloudflare Tunnel and the data-service project are not changed by this application deployment.
 
-1. Correct and commit on develop, push, and open a PR to main.
-2. CI validates the code and the assembled API image, including startup without linker warnings, non-root execution, writable working directory, Git and its HTTPS transport.
-3. After authorized merge to main, CI publishes the component's SemVer image to GHCR. The web keeps its independently published version when unchanged.
-4. On the server, run the update command only after both requested image versions are published. It pulls official images, validates the API runtime, resolves immutable digests, stops application writers, backs up PostgreSQL/configuration/encryption keys after stopping application writers, runs migrations, starts the containers and checks local readiness. It does not rebuild images, transfer executable archives, recreate databases or delete volumes.
-5. Verify public HTTPS, CORS, authenticated browser API, MCP authorization, synchronization, and the browser console before declaring publication complete. The local update checks do not replace these public acceptance checks.
+## Prepare the host
 
-## Initial installation on the existing host
+Install `compose.yaml`, `compose-0.4.0.yaml`, `web-nginx.conf`, and the deployment scripts under `/opt/nexora/deploy/app`. Keep `/etc/nexora`, `/var/lib/nexora`, `/opt/nexora/deploy/data`, and the existing database volumes intact.
 
-Install compose.yaml, web-nginx.conf and executable update.sh together under /opt/nexora/deploy/app as root-owned files. Preserve /etc/nexora, /var/lib/nexora, /opt/nexora/deploy/data and the existing native releases for rollback. Docker Compose must already be installed. The registry packages must be public or the operator must independently configure read-only registry access; no registry token belongs in source or the images.
+Copy `images.env.example` to `.env`, set file permissions to `0600`, then replace all sample image references with the approved registry and published `0.4.0` images. Set the numeric runtime UID/GID. Configure the RabbitMQ URI and its user, password, and virtual host consistently. Do not commit `.env`, credentials, private keys, or worker settings.
 
-Run on the server:
+Provide the following operator-managed files outside the image:
 
-```bash
-sudo /opt/nexora/deploy/app/update.sh 0.2.1 0.2.0
-```
+- `/etc/nexora/connections.json` for the API.
+- `/etc/nexora/worker-connections.json` for workers.
+- `/etc/nexora/worker-secrets/` for provider credentials.
+- `/etc/nexora/git-policy.json` and `/etc/nexora/analysis-worker.json`.
+- `/etc/nexora/release-worker.json` and `/etc/nexora/reasoning.json`.
+- `/var/lib/nexora/workspaces/analysis` and `/var/lib/nexora/workspaces/release` with ownership and permissions that allow the container UID `10001` to write.
 
-The first successful activation disables the old native API/worker systemd units. Nginx, Cloudflare Tunnel and the existing data service remain in place. Docker's unless-stopped policy restarts the application containers after a host restart. Existing secrets/configuration are mounted at their original paths, and API/worker use the numeric UID/GID of the existing nexora runtime account. Neither credentials nor private SSH keys are placed in the Compose file, source or images.
+The current PostgreSQL connector does not configure TLS. Keep the database endpoint on the trusted host/private network and retain its explicit host validation settings.
 
-The update writes /opt/nexora/deploy/app/.env containing image digests and numeric runtime identity only, with private permissions. It serializes updates using a lock and stores backups/receipts under /var/backups/nexora/images-*. Image validation or registry failure occurs before interrupting the active application.
+## Activate version 0.4.0
 
-## Failure and recovery
+Before stopping services, verify that every configured image is available and that the database, configuration files, and encryption keys have recoverable backups. Preserve the previous `.env` and image digests for rollback.
 
-A failed activation attempts to restore the previous proxy and application only if the database migration version is unchanged. A failed first transition restores the native services and removes the candidate image configuration; a container-to-container update restores the previous image configuration. CI exercises both paths in disposable containers with mocked service/database commands and no host or network access. If a migration changed the schema, it stops and reports the matching backup instead of blindly running older binaries. A database restore also requires its matching private encryption keys/configuration. Do not use compose down -v, delete volumes or regenerate keys during recovery. Backups, old native releases and previous image digests must be retained until recovery has been verified.
-
-For logs and status:
+Validate and pull the exact deployment configuration:
 
 ```bash
 cd /opt/nexora/deploy/app
-sudo docker compose ps
-sudo docker compose logs --tail 100 api worker web
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml config --quiet
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml pull
 ```
 
-images.env.example documents the variables; do not copy its sample numeric identity over a real installation. update.sh reads the existing runtime account and resolves the requested official tags automatically.
+Stop application writers before applying database migrations. Run the API's versioned migration command once, then start the services and wait for their health checks:
 
-The worker healthcheck verifies its process is alive; it does not assert completion or correctness of queued analysis jobs. The explicit healthcheck supports Compose implementations that reject `up --wait` when a service disables an image-inherited healthcheck.
+```bash
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml stop api worker analysis-worker release-worker knowledge-worker notification-worker
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml run --rm --no-deps api --connections /etc/nexora/connections.json --schema nexora_platform migrate
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml up -d --wait --wait-timeout 180
+```
+
+Verify API readiness, web and MCP health, RabbitMQ health, and one successful job lifecycle for analysis, release, knowledge, and notifications. Confirm browser access through the existing Nginx and Cloudflare Tunnel before retiring any compatibility service.
+
+## Recovery
+
+Keep the prior `.env`, image digests, database backup, configuration, and encryption keys until the new deployment and job lifecycles are verified. If a migration changed the schema, do not blindly run older binaries; restore only with the matching database and private configuration backup. Never run `docker compose down -v`, remove volumes, or regenerate encryption keys during recovery.
+
+For status and logs:
+
+```bash
+cd /opt/nexora/deploy/app
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml ps
+docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml logs --tail 100 api mcp rabbitmq analysis-worker release-worker knowledge-worker notification-worker
+```
+
+`update.sh` supports the earlier two-image API/web deployment. Use the versioned Compose overlay above for the seven-service `0.4.0` topology.

@@ -1,26 +1,30 @@
 # Kubernetes deployment inputs
 
-These manifests are deployment inputs, not a CD system. They are maintained in the common Nexora documentation repository so the API and web repositories remain independently buildable.
+These manifests describe the coordinated Nexora `0.4.0` service set. They are deployment inputs for an operator-managed cluster; environment-specific secrets, ingress, storage, network policies, and resource overlays remain operator-owned.
 
-## Version policy
+## Services and routing
 
-The release version for this set is `0.2.0`. The API and web images use the same SemVer release tag:
+The base includes the web application, private API, MCP gateway, and four independent workers: analysis, release, knowledge, and notifications. The API stores durable jobs in PostgreSQL. RabbitMQ carries wake-up messages. Each worker recovers eligible work from PostgreSQL at startup and broker reconnect, and claims jobs using database leases. The API must not be exposed directly to the public network. Route browser `/api` traffic to `nexora-api`; route `/mcp` to `nexora-mcp`. The gateway forwards MCP requests to the API's cluster-private `/mcp` endpoint. The API remains authoritative for MCP authentication, authorization, tools, and execution.
 
-```text
-nexora-api:0.2.0
-nexora-web:0.2.0
-```
+All seven images use the explicit `0.4.0` tag. The manifests use generic image names so an operator overlay can set the private registry without changing the shared base.
 
-`latest` and commit-derived tags are not part of the Nexora release policy. A future release must update the application versions, image tags, and this Kustomize image mapping together.
+## Before applying
 
-## Operator workflow
+1. Set the public browser origin and private API service URL in `base/configuration.example.yaml`, then create `nexora-api-config` and `nexora-worker-config` from the ConfigMap documents in that example. The Secret documents are examples only; do not apply their placeholder values.
+2. Create `nexora-api-connections` out of band. Its `connections.json` key must contain the private database connection document used by the API and workers.
+3. Create `nexora-runtime-secrets` out of band with `rabbitmq-url` and `openai-api-key`. Restrict access to the namespace and the service accounts that need these values.
+4. Create the `nexora-language-profiles` PVC and populate it with the profile directories referenced by `analysis-worker.json`. The example shows one JavaScript profile; configure each enabled profile and mount its directory at the declared path.
+5. Configure the API and release worker Git network policies and credentials through private settings and restricted egress. Analysis and release require Git access; do not store credentials in ConfigMaps.
+6. Review worker requests and limits against repository sizes, model/provider limits, and expected concurrency. Scale worker deployments independently after validating database lease and provider limits.
+7. Add an Ingress or reverse proxy in a private overlay. Expose the web application and route `/api` to the API only through the trusted proxy. Route `/mcp` to the gateway. Do not add a public route directly to the API service.
+8. Back up PostgreSQL, apply the API migrations as an explicit operator step, then apply the base and private overlays. Verify `/health` and `/ready` for API, `/health` for web and MCP, and one job lifecycle for each worker queue.
 
-1. Import the `nexora-api:0.2.0` and `nexora-web:0.2.0` images into the private server or cluster registry.
-2. Create `nexora-api-config` from `base/configuration.example.yaml` with the real browser origin and schema.
-3. Create `nexora-api-connections` out of band with the private `connections.json` document.
-4. Configure the reverse proxy or Ingress to send browser traffic to `nexora-web` and `/api` plus `/mcp` traffic to `nexora-api`.
-5. Back up PostgreSQL and other durable stores, run the API migration as an explicit operator step, and then apply the Deployment and Service resources.
-6. Verify `/health` and `/ready` on the API, `/health` on the web service, authentication, API routing, and a synthetic repository operation.
-7. Roll back by selecting the previous release tag in an operator-owned overlay and repeating the health and readiness checks.
+The analysis and release workers use an `emptyDir` source workspace. Their init containers set it to mode `0700` and ownership `10001`; cluster policy must permit that narrow init-container ownership setup. The workspace is disposable and is not a source of truth. The analysis profile PVC is read-only to the worker. The API and workers use a read-only root filesystem and non-root runtime identities.
 
-The example Secret contains a placeholder only. Credentials, TLS material, provider configuration, persistent-volume definitions, ingress hosts, and environment-specific replica/resource choices belong in the operator's private overlay or secret manager.
+## Secrets and private database hosts
+
+The example Secret contains placeholders only. Replace them through a secret manager or a private deployment overlay; never commit credentials. The `connections.json` file is loopback-only unless `allow_remote_host: true` is explicitly set. When enabled, the database hostname must resolve to an approved private endpoint and be restricted by network policy and database firewall rules. The current PostgreSQL connector does not configure TLS, so use this only on a trusted private network.
+
+## Rollback
+
+Set the component image tags to the previous coordinated release in a private overlay, apply it, and verify health/readiness and a worker job lifecycle. Database migrations must be checked for backward compatibility before rolling application images back.

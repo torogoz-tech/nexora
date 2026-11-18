@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Begin the coordinated component split for the API, remote MCP endpoint, and four independently scalable worker responsibilities.
+- Define PostgreSQL as the durable job authority and RabbitMQ as the worker wake-up transport.
+- Add Docker Compose and Kubernetes deployment inputs for the seven-service 0.4.0 topology, including RabbitMQ and four independent workers.
+- Document operator-managed secrets, PostgreSQL migrations, health checks, and recovery boundaries without claiming that the release worker has been deployed.
+
 ## 0.2.1
 
 - Add the official-image VPS deployment for API, worker and web, preserving existing databases, secrets and Cloudflare routing.

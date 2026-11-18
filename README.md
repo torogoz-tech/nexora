@@ -41,9 +41,9 @@ The knowledge can also be transversal. A project context can combine several rep
 - [Workflow transitions](docs/workflow-transitions.md) — guards, ordered actions, approvals, agent limits, and reconciliation.
 - [Benchmarks](docs/benchmarks.md) — measured results and what they do not prove.
 - [Implementation status](docs/implementation-status.md) — implemented, measured, partial, and future capabilities.
-- [Vision and horizon](docs/vision-and-horizon.md) — where Nexora is going beyond the `0.2.0` release.
+- [Vision and horizon](docs/vision-and-horizon.md) — where Nexora is going beyond the `0.4.0` component release.
 - [Reproducibility](docs/reproducibility.md) — how to inspect and reproduce the evidence.
-- [Versioning and release policy](docs/versioning.md) — SemVer, component compatibility, `0.2.0`, and the path to `1.0.0`.
+- [Versioning and release policy](docs/versioning.md) — SemVer, component compatibility, the coordinated `0.4.0` release, and the path to `1.0.0`.
 
 ## A simple mental model
 
@@ -214,7 +214,7 @@ The executable Rust implementation is available in [`torogoz-tech/nexora-api`](h
 
 ## Try the API and analyzer
 
-The public `0.2.0` API repository can be downloaded and tested locally today:
+The Nexora API repository can be downloaded and tested locally:
 
 ```bash
 git clone https://github.com/torogoz-tech/nexora-api.git
@@ -228,7 +228,7 @@ The first command validates the workspace. The language listing shows the profil
 
 ## Release status
 
-The API runtime fix targets `0.2.1`; the unchanged web remains on `0.2.0`. See [official-image VPS deployment](deployment/compose/README.md) for installation and updates. Each repository is versioned independently under the policy in [Versioning and release policy](docs/versioning.md). Container artifacts and images use the same SemVer release version, while CI remains separate from CD. This release is an early open-source foundation: GitLab live verification, Azure DevOps connectivity, and Kubernetes scale-out remain explicitly documented workstreams.
+The coordinated component release is `0.4.0`. It covers the existing web and API repositories plus standalone MCP, analysis, release, knowledge, and notification services. Each service has its own repository and SemVer history. See [Versioning and release policy](docs/versioning.md) for the compatibility map. The service extraction and Kubernetes deployment inputs are still in progress; the existing manifests describe the earlier API/web deployment and are not a complete 0.4.0 installation.
 
 ## Validated deployment and current infrastructure focus
 

@@ -26,7 +26,11 @@ This table prevents the public documentation from promising more than the source
 
 ## Active infrastructure work
 
-The current infrastructure workstream is the Kubernetes installation for Nexora scale-out. The objective is to move from the verified local Compose topology and single-host deployment guidance toward a repeatable Kubernetes deployment with:
+### Coordinated service extraction 0.4.0
+
+The coordinated 0.4.0 boundary contains seven services: web, API, MCP gateway, and four workers for analysis, release, knowledge, and external notifications. The API creates durable work records and publishes RabbitMQ wake-ups; workers recover eligible jobs from PostgreSQL at startup and broker reconnect, then claim work using database leases. The four worker executables and their tests live in independent repositories. API worker commands and embedded worker runtimes have been removed. A standalone MCP transport gateway forwards authenticated requests to the private API; MCP authorization, tool catalog, and execution remain API responsibilities. Docker Compose and Kubernetes inputs cover the seven services. The deployment overlay, credentials, network policy, and sizing remain operator-managed. Release-worker source integration is under review; the production test host does not yet run that service.
+
+The Compose and Kubernetes definitions for the seven-service topology are now present. The remaining cluster work is to validate the Kubernetes base with the operator's private overlay and target cluster, including:
 
 - API and worker deployments;
 - web delivery behind an ingress;
@@ -38,6 +42,6 @@ The current infrastructure workstream is the Kubernetes installation for Nexora 
 - monitoring, backups, restore tests, and failure recovery;
 - measured resource requests and limits.
 
-This work is active and must be verified in the target cluster before the scale-out installation is described as production-ready. The existing platform behavior is already validated in real operation; the public repository contains the architecture and requirements, not a universal Kubernetes manifest set or a capacity guarantee.
+The manifests are deployment inputs, not evidence of a cluster rollout. The target-cluster apply, storage and network policy validation, recovery drills, and measured capacity work remain outstanding before describing the Kubernetes installation as production-ready.
 
-The current validation cohort is a continuous group of 10 developers. Fixes discovered through their task and workflow use will be completed before Kubernetes scale testing begins.
+The continuous developer validation cohort and its feedback loop remain active alongside infrastructure validation.

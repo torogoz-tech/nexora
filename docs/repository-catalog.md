@@ -1,15 +1,29 @@
 # Repository catalog
 
-All public repositories are independent Git projects. They share a product family but do not share Git history. Each link opens the corresponding public GitHub repository; every repository currently publishes the `v0.1.0` tag.
+All public repositories are independent Git projects. They share a product family but do not share Git history. Existing public repositories keep their own histories and versions. The coordinated Nexora service set is being prepared as `0.4.0`.
 
 ## Product repositories
 
 | Repository | Responsibility | Version |
 | --- | --- | --- |
-| [`nexora`](https://github.com/torogoz-tech/nexora) | Product, scientific, architecture, benchmark, and cross-repository documentation | `0.1.0` |
-| [`nexora-api`](https://github.com/torogoz-tech/nexora-api) | Rust engine, CLI, server, persistence, governance, MCP, and platform API | `0.1.0` |
-| [`nexora-web`](https://github.com/torogoz-tech/nexora-web) | React/TypeScript browser application and bilingual human interface | `0.1.0` |
+| [`nexora`](https://github.com/torogoz-tech/nexora) | Product, scientific, architecture, benchmark, and cross-repository documentation | `0.4.0` |
+| [`nexora-api`](https://github.com/torogoz-tech/nexora-api) | Rust engine, CLI, server, persistence, governance, MCP, and platform API | `0.4.0` |
+| [`nexora-web`](https://github.com/torogoz-tech/nexora-web) | React/TypeScript browser application and bilingual human interface | `0.4.0` |
 | [`nexora-skill`](https://github.com/torogoz-tech/nexora-skill) | Agent skills, workflow boundaries, and authoring guidance | `0.1.0` |
+
+## Coordinated service set 0.4.0
+
+The seven repositories below define the coordinated component boundary. The API now creates durable jobs and publishes RabbitMQ wake-ups. Four standalone worker repositories own analysis, release, knowledge, and notification work. A separate MCP gateway handles transport and forwards authenticated requests to the private API; authorization, tool catalog, and tool execution remain API responsibilities. Kubernetes workloads are included in this release's deployment inputs. The new service repositories are currently local and require remote repositories before publication.
+
+| Repository | Responsibility | 0.4.0 status |
+| --- | --- | --- |
+| `nexora-web` | Browser application | Version metadata prepared |
+| `nexora-api` | Authenticated domain API and durable job creation | Version 0.4.0; RabbitMQ wake-up publisher; worker commands and embedded knowledge scheduler removed |
+| `nexora-mcp` | MCP transport gateway forwarding to the private API | Local 0.4.0 repository and runtime prepared; API continues to own MCP authorization and tool execution |
+| `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Local 0.4.0 repository, focused tests, and Kubernetes workload prepared |
+| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Local 0.4.0 repository and Kubernetes workload prepared |
+| `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Local 0.4.0 repository and Kubernetes workload prepared; scheduled daily job discovery remains in this worker |
+| `nexora-notification-worker` | External email and notification delivery | Local 0.4.0 repository and Kubernetes workload prepared |
 
 ## Analysis profile repositories
 

@@ -4,13 +4,31 @@ kind: Kustomization
 resources:
   - api-deployment.yaml
   - api-service.yaml
+  - mcp-deployment.yaml
+  - mcp-service.yaml
+  - worker-deployments.yaml
   - web-deployment.yaml
   - web-service.yaml
 
 images:
   - name: nexora-api
     newName: nexora-api
-    newTag: 0.2.0
+    newTag: 0.4.0
   - name: nexora-web
     newName: nexora-web
-    newTag: 0.2.0
+    newTag: 0.4.0
+  - name: nexora-mcp
+    newName: nexora-mcp
+    newTag: 0.4.0
+  - name: nexora-analysis-worker
+    newName: nexora-analysis-worker
+    newTag: 0.4.0
+  - name: nexora-release-worker
+    newName: nexora-release-worker
+    newTag: 0.4.0
+  - name: nexora-knowledge-worker
+    newName: nexora-knowledge-worker
+    newTag: 0.4.0
+  - name: nexora-notification-worker
+    newName: nexora-notification-worker
+    newTag: 0.4.0

@@ -17,12 +17,14 @@ spec:
         app.kubernetes.io/part-of: nexora
     spec:
       securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: api
-          image: nexora-api:0.2.0
+          image: nexora-api:0.4.0
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -38,6 +40,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: nexora-api-config
+          env:
+            - name: NEXORA_RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: nexora-runtime-secrets
+                  key: rabbitmq-url
           ports:
             - name: http
               containerPort: 18080
@@ -48,7 +56,11 @@ spec:
               readOnly: true
             - name: api-tmp
               mountPath: /tmp
+            - name: api-data
+              mountPath: /var/lib/nexora
           securityContext:
+            runAsUser: 10001
+            runAsGroup: 10001
             allowPrivilegeEscalation: false
             capabilities:
               drop:
@@ -81,4 +93,6 @@ spec:
           secret:
             secretName: nexora-api-connections
         - name: api-tmp
+          emptyDir: {}
+        - name: api-data
           emptyDir: {}
