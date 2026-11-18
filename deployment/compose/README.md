@@ -1,14 +1,14 @@
 # Official images on the existing Nexora VPS
 
-This installation uses the official GHCR API and web images. API and worker are separate containers using the same API image; no additional worker repository or Rust compilation is needed on the host. The API image must include Git and its HTTPS transport (API 0.2.1 or later).
+This Compose installation documents the earlier API, repository-worker, and web topology. It is not the 0.4.0 topology: that release separates API, MCP, analysis, release, knowledge, notification, and web into seven independently versioned services. Do not use this Compose file for the 0.4.0 cutover until the standalone runtimes and configuration have been added here.
 
 The existing PostgreSQL/pgvector, Dragonfly and Neo4j Compose project and persistent volumes remain unchanged. Host networking for API/worker is intentional: Nexora currently accepts only loopback database hosts in connections.json. The API binds to 127.0.0.1:18081, not a public interface. The web container binds to 127.0.0.1:18082; the existing host Nginx on 18080 routes browser API/MCP traffic and proxies static content. Cloudflare Tunnel is not changed.
 
 ## Release flow
 
 1. Correct and commit on develop, push, and open a PR to main.
-2. CI validates the code and the assembled API image, including startup without linker warnings, non-root execution, writable working directory, Git and its HTTPS transport.
-3. After authorized merge to main, CI publishes the component's SemVer image to GHCR. The web keeps its independently published version when unchanged.
+2. Validate the selected API and web images and confirm their runtime requirements.
+3. Use the component's SemVer version and the approved registry configured by the operator.
 4. On the server, run the update command only after both requested image versions are published. It pulls official images, validates the API runtime, resolves immutable digests, stops application writers, backs up PostgreSQL/configuration/encryption keys after stopping application writers, runs migrations, starts the containers and checks local readiness. It does not rebuild images, transfer executable archives, recreate databases or delete volumes.
 5. Verify public HTTPS, CORS, authenticated browser API, MCP authorization, synchronization, and the browser console before declaring publication complete. The local update checks do not replace these public acceptance checks.
 
@@ -28,9 +28,9 @@ The update writes /opt/nexora/deploy/app/.env containing image digests and numer
 
 ## Failure and recovery
 
-A failed activation attempts to restore the previous proxy and application only if the database migration version is unchanged. A failed first transition restores the native services and removes the candidate image configuration; a container-to-container update restores the previous image configuration. CI exercises both paths in disposable containers with mocked service/database commands and no host or network access. If a migration changed the schema, it stops and reports the matching backup instead of blindly running older binaries. A database restore also requires its matching private encryption keys/configuration. Do not use compose down -v, delete volumes or regenerate keys during recovery. Backups, old native releases and previous image digests must be retained until recovery has been verified.
+A failed activation attempts to restore the previous proxy and application only if the database migration version is unchanged. A failed first transition restores the native services and removes the candidate image configuration; a container-to-container update restores the previous image configuration. Disposable recovery checks exercise both paths with mocked service/database commands and no host or network access. If a migration changed the schema, it stops and reports the matching backup instead of blindly running older binaries. A database restore also requires its matching private encryption keys/configuration. Do not use compose down -v, delete volumes or regenerate keys during recovery. Backups, old native releases and previous image digests must be retained until recovery has been verified.
 
-For logs and status:
+For logs and status on this earlier deployment:
 
 ```bash
 cd /opt/nexora/deploy/app
@@ -38,6 +38,6 @@ sudo docker compose ps
 sudo docker compose logs --tail 100 api worker web
 ```
 
-images.env.example documents the variables; do not copy its sample numeric identity over a real installation. update.sh reads the existing runtime account and resolves the requested official tags automatically.
+images.env.example documents the variables; do not copy its sample numeric identity over a real installation. update.sh reads the existing runtime account and resolves the configured image tags automatically.
 
 The worker healthcheck verifies its process is alive; it does not assert completion or correctness of queued analysis jobs. The explicit healthcheck supports Compose implementations that reject `up --wait` when a service disables an image-inherited healthcheck.

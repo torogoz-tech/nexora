@@ -26,6 +26,10 @@ This table prevents the public documentation from promising more than the source
 
 ## Active infrastructure work
 
+### Coordinated service extraction 0.4.0
+
+The target boundary contains seven services: web, API, MCP, and four workers for analysis, release, knowledge, and external notifications. The API has a versioned RabbitMQ wake-up contract and publisher plus database recovery discovery. The analysis worker currently consumes those wake-ups from the API repository and scans PostgreSQL on process startup and every broker reconnect, so it is not yet an independently built or independently tested repository. Email delivery now runs through a separate `notifications` process command, but its code and executable are still in the API repository and image. Knowledge/rating processing still starts inside the API process, and the MCP HTTP endpoint also remains there. All five new service repositories, their independent images, and the complete service-level Kubernetes manifests are pending. Do not interpret this progress as completion of the 0.4.0 extraction.
+
 The current infrastructure workstream is the Kubernetes installation for Nexora scale-out. The objective is to move from the verified local Compose topology and single-host deployment guidance toward a repeatable Kubernetes deployment with:
 
 - API and worker deployments;

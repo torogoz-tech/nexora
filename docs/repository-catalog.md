@@ -1,15 +1,29 @@
 # Repository catalog
 
-All public repositories are independent Git projects. They share a product family but do not share Git history. Each link opens the corresponding public GitHub repository; every repository currently publishes the `v0.1.0` tag.
+All public repositories are independent Git projects. They share a product family but do not share Git history. Existing public repositories keep their own histories and versions. The coordinated Nexora service set is being prepared as `0.4.0`.
 
 ## Product repositories
 
 | Repository | Responsibility | Version |
 | --- | --- | --- |
-| [`nexora`](https://github.com/torogoz-tech/nexora) | Product, scientific, architecture, benchmark, and cross-repository documentation | `0.1.0` |
-| [`nexora-api`](https://github.com/torogoz-tech/nexora-api) | Rust engine, CLI, server, persistence, governance, MCP, and platform API | `0.1.0` |
-| [`nexora-web`](https://github.com/torogoz-tech/nexora-web) | React/TypeScript browser application and bilingual human interface | `0.1.0` |
+| [`nexora`](https://github.com/torogoz-tech/nexora) | Product, scientific, architecture, benchmark, and cross-repository documentation | `0.4.0` |
+| [`nexora-api`](https://github.com/torogoz-tech/nexora-api) | Rust engine, CLI, server, persistence, governance, MCP, and platform API | `0.4.0` |
+| [`nexora-web`](https://github.com/torogoz-tech/nexora-web) | React/TypeScript browser application and bilingual human interface | `0.4.0` |
 | [`nexora-skill`](https://github.com/torogoz-tech/nexora-skill) | Agent skills, workflow boundaries, and authoring guidance | `0.1.0` |
+
+## Coordinated service set 0.4.0
+
+The following seven repositories define the target component boundary. The five standalone service repositories are being prepared locally; their public repositories and 0.4.0 images are not yet available.
+
+| Repository | Responsibility | 0.4.0 status |
+| --- | --- | --- |
+| `nexora-web` | Browser application | Version metadata prepared |
+| `nexora-api` | Authenticated domain API and durable job creation | Version metadata and RabbitMQ wake-up publisher prepared; worker extraction pending |
+| `nexora-mcp` | Remote MCP protocol and API client | Repository not created |
+| `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Repository not created |
+| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Repository not created |
+| `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Repository not created |
+| `nexora-notification-worker` | External email and notification delivery | Repository not created |
 
 ## Analysis profile repositories
 
