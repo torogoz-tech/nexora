@@ -13,7 +13,7 @@ All public repositories are independent Git projects. They share a product famil
 
 ## Coordinated service set 0.4.0
 
-The following seven repositories define the target component boundary. The five standalone service repositories are being prepared locally; their public repositories and 0.4.0 images are not yet available.
+The following seven repositories define the target component boundary. The notification worker now has a standalone local repository. Its remote repository, API cutover, and deployment workload are not ready. The other four standalone service repositories are still pending.
 
 | Repository | Responsibility | 0.4.0 status |
 | --- | --- | --- |
@@ -23,7 +23,7 @@ The following seven repositories define the target component boundary. The five 
 | `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Repository not created |
 | `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Repository not created |
 | `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Repository not created |
-| `nexora-notification-worker` | External email and notification delivery | Repository not created |
+| `nexora-notification-worker` | External email and notification delivery | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
 
 ## Analysis profile repositories
 
