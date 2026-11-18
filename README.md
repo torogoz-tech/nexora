@@ -228,7 +228,7 @@ The first command validates the workspace. The language listing shows the profil
 
 ## Release status
 
-The coordinated `0.4.0` release defines seven application services: web, API, the MCP gateway, and four workers for analysis, releases, knowledge, and notifications. PostgreSQL is the source of truth for domain state and jobs. RabbitMQ wakes workers, which claim and recover eligible jobs from PostgreSQL. The release worker owns recovery of pending task transitions and release composition.
+The coordinated `0.4.0` release defines seven application services: web, API, the MCP gateway, and four workers for analysis, releases, knowledge, and notifications. PostgreSQL is the source of truth for domain state and jobs. RabbitMQ sends worker wake-up messages. Worker coordination and recovery depend on the job type. The release worker is intended to own pending task transition recovery and release composition. The deployment guides document the current recovery limits and the verification required before retiring the compatibility worker.
 
 The [Docker Compose guide](deployment/compose/README.md) covers the versioned overlay, which includes RabbitMQ. The [Kubernetes guide](deployment/kubernetes/README.md) covers the seven application workloads and the RabbitMQ service operators must provide. See the [deployment architecture](docs/deployment-architecture.md) for responsibilities and cutover checks, and the [versioning policy](docs/versioning.md#coordinated-service-release-040) for the component set.
 

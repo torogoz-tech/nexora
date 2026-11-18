@@ -18,11 +18,11 @@ The coordinated 0.4.0 topology has seven application services: web, API, MCP, an
 | Dragonfly-compatible cache | Reusable analysis fragments and query cache | Disposable/recoverable | Private network, memory limit, authenticated access |
 | Neo4j | Relationship and graph traversal projection | Persistent projection | Backups/rebuild plan, restricted network, authenticated access |
 | `nexora-analysis-worker` | Repository checkout and complete language-analysis pipeline | Analysis job state | Git credential isolation, idempotency, bounded CPU and memory |
-| `nexora-release-worker` | Recovery of pending task transitions, release composition, and Git publication | Transition and release job state in PostgreSQL | Git credential isolation, idempotency, bounded concurrency |
+| `nexora-release-worker` | Intended owner for task transition recovery, release composition, and Git publication | Transition and release job state in PostgreSQL | Git credential isolation, idempotency, bounded concurrency |
 | `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Knowledge job state | Provider isolation, idempotency, bounded concurrency |
 | `nexora-notification-worker` | External email and notification delivery | Delivery job state | Provider isolation, deduplication, bounded retries |
 
-PostgreSQL is the source of truth for jobs and domain state. The API persists work in PostgreSQL and sends a wake-up through RabbitMQ. Workers claim eligible jobs from PostgreSQL and check for pending work at startup and after reconnecting to the broker. The release worker checks both pending task transitions and release composition work. Neo4j and vector structures are projections or retrieval indexes. Dragonfly is an optimization. Losing the cache should cause re-analysis, not loss of the canonical snapshot.
+PostgreSQL is the source of truth for jobs and domain state. The API persists work in PostgreSQL and sends a wake-up through RabbitMQ. Recovery and coordination are job-specific. Release composition uses a per-release PostgreSQL advisory lock and retries queued jobs or jobs left running beyond its stale interval. Task transition continuation scans ready runs and stale waiting_external runs, while a per-task PostgreSQL advisory lock serializes execution. The current transition scan does not atomically claim a run or recover a run abandoned in running. See the [Kubernetes guide](../deployment/kubernetes/README.md) for current details and the pending extraction target. Neo4j and vector structures are projections or retrieval indexes. Dragonfly is an optimization. Losing the cache should cause re-analysis, not loss of the canonical snapshot.
 
 ## RabbitMQ requirements
 
@@ -110,7 +110,7 @@ An operational release should follow this order:
 2. verify the seven application image versions and compatible language profiles;
 3. run migrations as an explicit controlled step;
 4. confirm RabbitMQ connectivity, then deploy the API, MCP gateway, and workers;
-5. verify health, authentication, configuration, and one job lifecycle for each worker. Verify pending transition recovery before retiring the compatibility worker;
+5. verify health, authentication, and configuration. In an isolated environment, stop the compatibility worker and verify release composition and task transition recovery attributable to release-worker before retiring the compatibility worker;
 6. deploy the web assets and verify `/api` routing;
 7. index or recover a synthetic repository;
 8. verify snapshot publication and graph projection;
@@ -131,7 +131,7 @@ The team is currently working on the Kubernetes installation so Nexora can scale
 
 ## Current publication boundary
 
-The deployment artifacts describe the intended 0.4.0 topology. Verify the availability of each image and the behavior of each worker in the target environment before completing the cutover. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
+The deployment artifacts describe the intended 0.4.0 topology. Verify the availability of each image and the behavior of each worker in the target environment before completing the cutover. In particular, the current task transition continuation cannot recover abandoned running runs. Atomic claiming and abandoned-run recovery are goals of the planned extraction and remain pending implementation and deployment verification. The public source does not provide a universal production sizing profile, managed database service, or high-availability guarantee; those remain environment-specific operational concerns and require their own tested overlays and evidence.
 
 ## Official-image VPS deployment
 
