@@ -13,15 +13,15 @@ All public repositories are independent Git projects. They share a product famil
 
 ## Coordinated service set 0.4.0
 
-The following seven repositories define the target component boundary. The notification worker now has a standalone local repository. Its remote repository, API cutover, and deployment workload are not ready. The other four standalone service repositories are still pending.
+The following seven repositories define the target component boundary. The analysis, release, and notification workers have standalone local repositories. Their API cutovers, remote repositories, and deployment workloads are not ready. The MCP and knowledge worker repositories are still pending.
 
 | Repository | Responsibility | 0.4.0 status |
 | --- | --- | --- |
 | `nexora-web` | Browser application | Version metadata prepared |
 | `nexora-api` | Authenticated domain API and durable job creation | Version metadata and RabbitMQ wake-up publisher prepared; worker extraction pending |
 | `nexora-mcp` | Remote MCP protocol and API client | Repository not created |
-| `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Repository not created |
-| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Repository not created |
+| `nexora-analysis-worker` | Repository checkout and full code-analysis pipeline | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
+| `nexora-release-worker` | Workflow transitions, release composition, and Git publication | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
 | `nexora-knowledge-worker` | Knowledge synthesis, embeddings, daily analysis, and ratings | Repository not created |
 | `nexora-notification-worker` | External email and notification delivery | Local repository prepared; API cutover, Kubernetes manifest, and remote repository pending |
 
