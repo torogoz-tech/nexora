@@ -228,21 +228,11 @@ The first command validates the workspace. The language listing shows the profil
 
 ## Release status
 
-The coordinated `0.4.0` release defines seven application services: web, API, the MCP gateway, and four workers for analysis, releases, knowledge, and notifications. PostgreSQL is the source of truth for domain state and jobs. RabbitMQ sends worker wake-up messages. Worker coordination and recovery depend on the job type. The release worker is intended to own pending task transition recovery and release composition. The deployment guides document the current recovery limits and the verification required before retiring the compatibility worker.
+The coordinated `0.4.0` architecture is in preparation. Its target application topology is the web application, API, MCP gateway, and four independently scalable workers: analysis, release, knowledge, and notifications. Language-analysis profiles remain separately maintained artifacts; they are not additional services in this worker split. Shared libraries are maintained in separate repositories.
 
-The [Docker Compose guide](deployment/compose/README.md) covers the versioned overlay, which includes RabbitMQ. The [Kubernetes guide](deployment/kubernetes/README.md) covers the seven application workloads and the RabbitMQ service operators must provide. See the [deployment architecture](docs/deployment-architecture.md) for responsibilities and cutover checks, and the [versioning policy](docs/versioning.md#coordinated-service-release-040) for the component set.
+PostgreSQL remains the source of truth for domain state and durable jobs. RabbitMQ carries worker wake-up messages. Workers must recover eligible durable jobs when they start, so work remains recoverable if a broker or worker was unavailable. The knowledge worker owns AI task reviews and contributor ratings; the release worker resumes the related task transition after that work completes.
 
-## Validated deployment and current infrastructure focus
-
-Nexora has already been exercised successfully in a real self-hosted deployment. The public repositories describe the reusable source and operational contracts; deployment-specific identifiers, URLs, credentials, and private infrastructure details are intentionally excluded.
-
-The current operational validation is being carried out with a continuous working group of 10 developers. Their ongoing use of repositories, tasks, workflows, knowledge, reviews, and delivery processes is being used to identify and close the fixes that appear under real team work.
-
-The team's principal repository connectors are GitHub, GitLab, and Azure DevOps. GitHub is the connector currently checked in the available verification work; GitLab is scheduled for live review this week; Azure DevOps is part of the connector roadmap and will be incorporated as a first-class provider without changing Nexora's repository-first model.
-
-The current infrastructure work is focused on the Kubernetes installation needed to scale beyond a single-host deployment. Cluster validation covers the seven application workloads, their infrastructure dependencies, and operator configuration for storage, secrets, TLS, observability, migrations, backups, and recovery. Kubernetes scale-out is an active workstream, while the existing platform behavior has already been validated in real operation.
-
-Kubernetes scale testing will begin after the fixes identified through continuous task and workflow management have been completed. This sequence lets the team validate the behavior that will actually be scaled, rather than scaling an unfinished workflow contract.
+These statements describe the approved architecture. They do not certify that every component, recovery path, image, or deployment has been implemented or validated. See the [deployment architecture](docs/deployment-architecture.md), [Compose preparation guide](deployment/compose/README.md), [Kubernetes guide](deployment/kubernetes/README.md), and [versioning policy](docs/versioning.md#coordinated-service-release-040) for scope and verification boundaries.
 
 ## License
 

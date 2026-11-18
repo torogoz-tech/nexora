@@ -1,12 +1,12 @@
 # Docker Compose deployment
 
-The `0.4.0` Compose files document a staged migration of the existing single-host installation. They are not a stand-alone installation recipe. They expect the existing data-service project, configuration, secrets, and volumes to remain in place.
+The `0.4.0` Compose files are deployment preparation inputs for the approved seven-service application topology. They are not a verified deployment or stand-alone installation recipe. Before using them, inspect the actual Compose configuration and confirm that all referenced images, settings, host paths, networks, and volumes match the target host. Preserve existing data and secrets unless a separately reviewed migration plan says otherwise.
 
-Compose loads `compose.yaml` and `compose-0.4.0.yaml` together. The base file defines the API, web, and compatibility worker. The overlay adds MCP, RabbitMQ, and the four independent workers. It requires `NEXORA_LEGACY_API_IMAGE` for the compatibility worker until that service is retired. PostgreSQL holds durable job state, and RabbitMQ wakes the workers. The release worker is intended to own recovery of pending task transitions and release composition.
+The intended configuration combines `compose.yaml` and `compose-0.4.0.yaml`. The application topology is web, API, MCP gateway, and four independent workers: analysis, release, knowledge, and notifications. PostgreSQL is the source of truth for domain state and durable jobs; RabbitMQ carries worker wake-up messages. Workers must recover eligible pending work on startup. The knowledge worker processes AI reviews and contributor ratings, then release worker resumes the associated task transition. Confirm that the current Compose files and images implement this contract before activation; this guide does not certify that they do.
 
-Before removing the compatibility worker, verify both release-worker functions in a controlled, isolated environment. Stop or exclude the legacy worker from that test, direct only the release worker to the isolated database schema and RabbitMQ queue, and create one eligible pending task transition and one queued release composition. Verify each run's database state transition and correlate it with the release worker's logs and consumed wake-up. Record the release worker identity and resulting run or release IDs as evidence. Repeat after a release-worker restart to verify startup recovery. A completion while the legacy worker is active does not establish which worker performed it. Retire the compatibility worker only after attributable evidence confirms both functions and startup recovery.
+Before any cutover, verify all four worker lifecycles in an isolated environment. Confirm that pending jobs are recovered after worker restart and after RabbitMQ restart; verify message acknowledgement only after durable job state is safely handled. Exercise analysis, notification delivery, knowledge review/rating, and release composition. For the knowledge-to-release handoff, correlate the durable job and transition state with logs from both workers, then restart each worker while work is pending and repeat. Do not remove or disable an existing compatibility service until evidence shows that the new release worker owns and completes the relevant transition and composition work.
 
-The API binds to `127.0.0.1:18081`, MCP to `127.0.0.1:18083`, web to `127.0.0.1:18082`, and RabbitMQ to `127.0.0.1:5672`. The host Nginx continues to serve port `18080`, route browser API and MCP traffic, and proxy static content. Cloudflare Tunnel and the data-service project are not changed by this application deployment.
+The example Compose configuration uses host ports for the API, MCP, web, and RabbitMQ. Verify actual bind addresses and reverse-proxy routing before use; do not expose RabbitMQ or data services publicly. Any existing Nginx, tunnel, or data-service configuration is outside this guide's verified scope and should not be changed as part of applying these preparation inputs.
 
 ## Prepare the host
 
@@ -25,9 +25,9 @@ Provide the following operator-managed files outside the image:
 
 The current PostgreSQL connector does not configure TLS. Keep the database endpoint on the trusted host/private network and retain its explicit host validation settings.
 
-## Activate version 0.4.0
+## Prepare a 0.4.0 deployment
 
-Before stopping services, verify that every configured image is available and that the database, configuration files, and encryption keys have recoverable backups. Preserve the previous `.env` and image digests for rollback.
+Do not stop or migrate an existing installation based only on this guide. First verify that the exact Compose configuration is valid, every referenced image is available and compatible, and the database, configuration files, and encryption keys have recoverable backups. Preserve the current deployment configuration and image digests for rollback. Test migrations and recovery on a disposable database before applying them to a target environment.
 
 Validate and pull the exact deployment configuration:
 
@@ -37,7 +37,7 @@ docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml config --qu
 docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml pull
 ```
 
-Stop application writers before applying database migrations. Run the API's versioned migration command once, then start the services and wait for their health checks:
+Only after those checks and an approved environment-specific change plan, stop application writers before applying database migrations. Run the API's versioned migration command once, then start the services and wait for their health checks:
 
 ```bash
 docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml stop api worker analysis-worker release-worker knowledge-worker notification-worker
@@ -45,7 +45,7 @@ docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml run --rm --
 docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml up -d --wait --wait-timeout 180
 ```
 
-Verify API readiness, web and MCP health, RabbitMQ health, and one successful job lifecycle for analysis, release, knowledge, and notifications. Confirm browser access through the existing Nginx and Cloudflare Tunnel before retiring any compatibility service.
+Verify API readiness, web and MCP health, RabbitMQ health, and a successful job lifecycle for each worker, including startup recovery and the knowledge-to-release transition handoff. Confirm browser access through the environment's configured reverse proxy before retiring any compatibility service. Record evidence and actual deployed revisions; the Compose files alone do not establish a successful deployment.
 
 ## Recovery
 
@@ -59,4 +59,4 @@ docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml ps
 docker compose --env-file .env -f compose.yaml -f compose-0.4.0.yaml logs --tail 100 api mcp rabbitmq analysis-worker release-worker knowledge-worker notification-worker
 ```
 
-`update.sh` supports the earlier two-image API/web deployment. Use the versioned Compose overlay above for the seven-service `0.4.0` topology.
+`update.sh` supports the earlier two-image API/web deployment. The versioned Compose files describe the seven-service `0.4.0` target topology; deployment readiness remains subject to the verification steps above.
