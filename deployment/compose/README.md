@@ -2,7 +2,7 @@
 
 This Compose installation documents the earlier API, repository-worker, and web topology. It is not the 0.4.0 topology: that release separates API, MCP, analysis, release, knowledge, notification, and web into seven independently versioned services. Do not use this Compose file for the 0.4.0 cutover until the standalone runtimes and configuration have been added here.
 
-The existing PostgreSQL/pgvector, Dragonfly and Neo4j Compose project and persistent volumes remain unchanged. Host networking for API/worker is intentional: Nexora currently accepts only loopback database hosts in connections.json. The API binds to 127.0.0.1:18081, not a public interface. The web container binds to 127.0.0.1:18082; the existing host Nginx on 18080 routes browser API/MCP traffic and proxies static content. Cloudflare Tunnel is not changed.
+The existing PostgreSQL/pgvector, Dragonfly and Neo4j Compose project and persistent volumes remain unchanged. Host networking for the currently deployed, pre-0.4.0 API/worker is intentional: those releases accept only loopback database hosts in connections.json. The API binds to 127.0.0.1:18081, not a public interface. The web container binds to 127.0.0.1:18082; the existing host Nginx on 18080 routes browser API/MCP traffic and proxies static content. Cloudflare Tunnel is not changed.
 
 ## Release flow
 

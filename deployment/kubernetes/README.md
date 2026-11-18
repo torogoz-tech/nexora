@@ -24,3 +24,5 @@ nexora-web:0.2.0
 7. Roll back by selecting the previous release tag in an operator-owned overlay and repeating the health and readiness checks.
 
 The example Secret contains a placeholder only. Credentials, TLS material, provider configuration, persistent-volume definitions, ingress hosts, and environment-specific replica/resource choices belong in the operator's private overlay or secret manager. Do not use this base as the 0.4.0 deployment; service manifests will be added when the standalone runtimes are ready.
+
+For the 0.4.0 runtimes, `connections.json` remains loopback-only unless `allow_remote_host: true` is explicitly set. When enabled, the API and workers may use a syntactically validated DNS name or IP for PostgreSQL. Operators must route it to an approved private endpoint and restrict access with Kubernetes NetworkPolicies and database network rules. The current PostgreSQL connector does not configure TLS, so this setting is suitable only for a trusted private network.
